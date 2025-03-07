@@ -3,6 +3,7 @@ from decimal import Decimal
 Numeric = int | float | Decimal
 Border = list[Numeric] | tuple[Numeric, ...] | Numeric
 
+
 class AlphaCut:
     """
     Represents an α-cut of a fuzzy set.
@@ -22,6 +23,8 @@ class AlphaCut:
 
     @staticmethod
     def _borders_prep(borders: Border) -> tuple[Numeric, ...]:
+
+        # TODO [ KM 1 ] Kiedy masz return to nie musisz pisac if ... elif ... elif ... tylko same if
         if isinstance(borders, tuple) and all([isinstance(i, Numeric) for i in borders]):
             return borders
         elif isinstance(borders, list) and all([isinstance(i, Numeric) for i in borders]):
@@ -77,6 +80,9 @@ class AlphaCut:
         return True if len(self.left_borders) == 1 and len(self.right_borders) == 1 else False
 
 
+# TODO [ KM 2 ] Brak dokumentacji w README, nie wiadomo co projekt robi, jak go uruchomic, jakie ma pokrycie
+#  kodu testami, jakie wyniki statycznej analizy kodu, jaka wersja python, scenariusze uzycia, jesli repo
+#  w PyPI to link to repo
 
 def main() -> None:
     pass
