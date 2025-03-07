@@ -24,12 +24,11 @@ class AlphaCut:
     def _borders_prep(borders: Border) -> tuple[Numeric, ...]:
         if isinstance(borders, tuple) and all([isinstance(i, Numeric) for i in borders]):
             return borders
-        elif isinstance(borders, list) and all([isinstance(i, Numeric) for i in borders]):
+        if isinstance(borders, list) and all([isinstance(i, Numeric) for i in borders]):
             return tuple(borders)
-        elif isinstance(borders, Numeric):
+        if isinstance(borders, Numeric):
             return tuple([borders])
-        else:
-            raise TypeError(f"Invalid borders type: {type(borders)}")
+        raise TypeError(f"Invalid borders type: {type(borders)}")
 
     @staticmethod
     def _same_type_check(left_borders: Border, right_borders: Border) -> None:
