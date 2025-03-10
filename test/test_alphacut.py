@@ -61,6 +61,10 @@ def test_alpha_cut_convex(left_borders: float, right_borders: float ) -> None:
     assert ac.is_convex() is True
 
 @pytest.mark.parametrize("left_borders, right_borders", [((1, 2),(2, 3)), ((1, 3), (5, 7))])
-def test_alpha_cut_convex(left_borders: float, right_borders: float ) -> None:
+def test_alpha_cut_not_convex(left_borders: float, right_borders: float ) -> None:
     ac = AlphaCut(0.1, left_borders, right_borders)
     assert ac.is_convex() is False
+
+def test_repr():
+    ac = AlphaCut(0.1, 0, 1)
+    assert ac.__repr__() == f'Alpha_cut(0.1, (0,), (1,))'
