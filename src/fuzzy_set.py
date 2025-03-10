@@ -26,7 +26,6 @@ class AlphaCut:
     @staticmethod
     def _borders_prep(borders: Border) -> tuple[Numeric, ...]:
 
-        # TODO [ KM 1 ] Kiedy masz return to nie musisz pisac if ... elif ... elif ... tylko same if
         if isinstance(borders, tuple) and all([isinstance(i, Numeric) for i in borders]):
             return borders
         if isinstance(borders, list) and all([isinstance(i, Numeric) for i in borders]):
@@ -37,6 +36,11 @@ class AlphaCut:
 
     @staticmethod
     def _same_type_check(left_borders: Border, right_borders: Border) -> None:
+
+        # TODO [ KM 1 ] Jesli mamy tak szczegolowe sprawdzenie to jeszcze dodalbym
+        # if not left_borders or not right_borders:
+        #    raise ValueError("Borders cannot be empty.")
+
         if isinstance(left_borders, tuple | list) and isinstance(right_borders, tuple | list):
             expected_type = type(left_borders[0])
             if not all([isinstance(border, expected_type) for border in left_borders]):
@@ -58,6 +62,7 @@ class AlphaCut:
         if not all([left < right for left, right in zip(self.left_borders, self.right_borders)]):
             raise ValueError("Alpha-cut have to has positive length.")
         if len(self.left_borders) != 1:
+            # TODO [ KM 2 ] Lepiej w projekcie na gotowo stosowac loggers
             print(self.left_borders[1:], self.right_borders[:-1])
             if not all([left <= right for left, right in zip(self.left_borders[1:], self.right_borders[:-1])]):
                 raise ValueError("Two parts of alpha-cut can't cover.")
@@ -78,6 +83,8 @@ class AlphaCut:
         return self._right_borders
 
     def is_convex(self) -> bool:
+        # TODO [ KM 3 ] Wystarczy:
+        #  return len(self.left_borders) == 1 and len(self.right_borders) == 1
         return True if len(self.left_borders) == 1 and len(self.right_borders) == 1 else False
 
     def __str__(self) -> str:
@@ -99,6 +106,12 @@ class FuzzySet:
                 raise ValueError(f"You have two Alpha-cuts with same level {alpha_cut.level}.")
 
     def add_alpha_cut(self, alpha_cuts: AlphaCut | Iterable[AlphaCut]) -> 'FuzzySet':
+
+        # TODO [ KM 4 ] Ten for moim zdaniem mozna uproscic, a dokladniej warunek w nim zawarty
+        #  if isinstance(alpha_cuts, AlphaCut):
+        #     alpha_cuts = (alpha_cuts,)
+        #  Dla czytelnosci zrobilbym to jeszcze przed for
+
         for alpha_cut in (alpha_cuts,) if not isinstance(alpha_cuts, Iterable) else alpha_cuts:
             print(self._alpha_cuts.keys(), alpha_cut)
             if alpha_cut.level not in self._alpha_cuts.keys():
@@ -114,9 +127,6 @@ class FuzzySet:
         else:
             raise ValueError(f"There is no alpha-cut level {level} in fuzzy set.")
 
-# TODO [ KM 2 ] Brak dokumentacji w README, nie wiadomo co projekt robi, jak go uruchomic, jakie ma pokrycie
-#  kodu testami, jakie wyniki statycznej analizy kodu, jaka wersja python, scenariusze uzycia, jesli repo
-#  w PyPI to link to repo
 
 def main() -> None:
     ac0 = AlphaCut(0.01, 0.0, 1.0)
