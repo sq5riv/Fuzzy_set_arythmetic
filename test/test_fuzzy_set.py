@@ -8,8 +8,11 @@ ac0 = AlphaCut(0.01, 0.0, 1.0)
 ac1 = AlphaCut(0.1, 0.0, 1.0)
 ac2 = AlphaCut(0.1, 0.0, 1.0)
 ac3 = AlphaCut(0.3, 0.0, 1.0)
+ac4 = AlphaCut(0.1, (0.0, 6.0), (5.0, 10.))
+ac5 = AlphaCut(0.2, (1.0, 7.0), (4.0, 9.))
+ac6 = AlphaCut(0.4, (2.0, 8.0), (3.0, 8.5))
 
-@pytest.mark.parametrize("a", [ac1, [ac2], [ac3]])
+@pytest.mark.parametrize("a", [ac1, [ac2], (ac3,)])
 def test_fuzzy_set(a: Iterable[AlphaCut]) -> None:
     assert FuzzySet(a)
 
@@ -41,5 +44,8 @@ def test_remove_alpha_cut_to_fuzzy_set_incorrect(a: float | Decimal) -> None:
         fs.remove_alpha_cut(a)
 
 
-
+@pytest.mark.parametrize("a", [(0.1, .1), (2,.4) , (4, .2), (100, 0)])
+def test_fuzy_set_membership_(a: tuple[float, float]) -> None:
+    fs = FuzzySet([ac4, ac5, ac6])
+    assert fs.check_membership_level(a[0]) == a[1]
 
