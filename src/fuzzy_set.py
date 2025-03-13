@@ -1,6 +1,7 @@
-from collections import defaultdict
-from typing import Iterable, DefaultDict
+import copy
+from typing import Iterable, Union, Sized, Literal
 from decimal import Decimal
+
 
 Numeric = int | float | Decimal
 Border = list[Numeric] | tuple[Numeric, ...] | Numeric
@@ -36,12 +37,11 @@ class AlphaCut:
 
     @staticmethod
     def _same_type_check(left_borders: Border, right_borders: Border) -> None:
-
-        # TODO [ KM 1 ] Jesli mamy tak szczegolowe sprawdzenie to jeszcze dodalbym
-        # if not left_borders or not right_borders:
-        #    raise ValueError("Borders cannot be empty.")
-
+        if left_borders is None or right_borders is None:
+            raise TypeError("Both left or right borders cannot be None")
         if isinstance(left_borders, tuple | list) and isinstance(right_borders, tuple | list):
+            if len(left_borders) == 0 == len(right_borders):
+                raise TypeError("Left or right borders can not be empty iterable")
             expected_type = type(left_borders[0])
             if not all([isinstance(border, expected_type) for border in left_borders]):
                 raise TypeError(f"Not all borders are {expected_type}")
@@ -62,13 +62,12 @@ class AlphaCut:
         if not all([left < right for left, right in zip(self.left_borders, self.right_borders)]):
             raise ValueError("Alpha-cut have to has positive length.")
         if len(self.left_borders) != 1:
-            # TODO [ KM 2 ] Lepiej w projekcie na gotowo stosowac loggers
-            print(self.left_borders[1:], self.right_borders[:-1])
-            if not all([left <= right for left, right in zip(self.left_borders[1:], self.right_borders[:-1])]):
-                raise ValueError("Two parts of alpha-cut can't cover.")
             if (not all([p < pp for p, pp in zip(self.left_borders, self.left_borders[1:])])
                     or not all([p < pp for p, pp in zip(self.right_borders, self.right_borders[1:])])):
                 raise ValueError(f"Parts of alpha-cut have to be sorted.")
+            if not all([left >= right for left, right in zip(self.left_borders[1:], self.right_borders[:-1])]):
+                raise ValueError("Two parts of alpha-cut can't cover.")
+
 
     @property
     def level(self) -> float | Decimal:
@@ -83,9 +82,32 @@ class AlphaCut:
         return self._right_borders
 
     def is_convex(self) -> bool:
-        # TODO [ KM 3 ] Wystarczy:
-        #  return len(self.left_borders) == 1 and len(self.right_borders) == 1
-        return True if len(self.left_borders) == 1 and len(self.right_borders) == 1 else False
+        return len(self.left_borders) == 1 and len(self.right_borders) == 1
+
+    def __contains__(self, narrow: Union['AlphaCut', Numeric]) -> bool:
+        if isinstance(narrow, AlphaCut):
+            if narrow.left_borders[0] < self.left_borders[0]:
+                return False
+            for left_border, right_border in zip(narrow.left_borders, narrow.right_borders):
+                index_to_check = -1
+                for index, value in enumerate(self.left_borders):
+                    if value >= left_border:
+                        index_to_check = index
+                        break
+                if right_border <= self.right_borders[index_to_check]:
+                    continue
+                else:
+                    return False
+            return True
+        else:
+            for left_border, right_border in zip(self.left_borders, self.right_borders):
+                if left_border <= narrow <= right_border:
+                    return True
+            return False
+
+
+    def is_wider(self, narrow: 'AlphaCut') -> bool:
+        return narrow in self
 
     def __str__(self) -> str:
         return f'Alpha_cut({self.level}, {self.left_borders}, {self.right_borders})'
@@ -98,45 +120,96 @@ class FuzzySet:
     :param alpha_cuts: Iterable of alpha-cuts.
     """
     def __init__(self, alpha_cuts: Iterable[AlphaCut] | AlphaCut):
-        self._alpha_cuts: DefaultDict[float|Decimal, AlphaCut] = defaultdict()
+        self._alpha_cuts: dict[float|Decimal, AlphaCut] = dict()
         for alpha_cut in alpha_cuts if not isinstance(alpha_cuts, AlphaCut) else (alpha_cuts,):
             if alpha_cut.level not in self._alpha_cuts.keys():
                 self._alpha_cuts[alpha_cut.level] = alpha_cut
             else:
                 raise ValueError(f"You have two Alpha-cuts with same level {alpha_cut.level}.")
+        self._sort_a_cuts()
+        self._check_alpha_levels_membership()
 
-    def add_alpha_cut(self, alpha_cuts: AlphaCut | Iterable[AlphaCut]) -> 'FuzzySet':
-
-        # TODO [ KM 4 ] Ten for moim zdaniem mozna uproscic, a dokladniej warunek w nim zawarty
-        #  if isinstance(alpha_cuts, AlphaCut):
-        #     alpha_cuts = (alpha_cuts,)
-        #  Dla czytelnosci zrobilbym to jeszcze przed for
-
-        for alpha_cut in (alpha_cuts,) if not isinstance(alpha_cuts, Iterable) else alpha_cuts:
-            print(self._alpha_cuts.keys(), alpha_cut)
+    def add_alpha_cut(self, alpha_cuts: AlphaCut | Iterable[AlphaCut]) -> "FuzzySet":
+        if isinstance(alpha_cuts, AlphaCut):
+            alpha_cuts = (alpha_cuts,)
+        for alpha_cut in alpha_cuts:
             if alpha_cut.level not in self._alpha_cuts.keys():
                 self._alpha_cuts[alpha_cut.level] = alpha_cut
             else:
                 raise ValueError(f"You have two Alpha-cuts with same level {alpha_cut.level}.")
+        self._sort_a_cuts()
+        self._check_alpha_levels_membership()
         return self
 
-    def remove_alpha_cut(self, level: float | Decimal) -> 'FuzzySet':
+    def remove_alpha_cut(self, level: float | Decimal) -> "FuzzySet":
         if level in self._alpha_cuts.keys():
             self._alpha_cuts.pop(level)
             return self
         else:
             raise ValueError(f"There is no alpha-cut level {level} in fuzzy set.")
 
+    def _sort_a_cuts(self):
+        self._alpha_cuts = dict(sorted(self._alpha_cuts.items(), reverse=True))
+
+    def _check_alpha_levels_membership(self):
+
+        for i, j in zip(list(self._alpha_cuts.values())[1:], list(self._alpha_cuts.values())[:-1]):
+            if j not in i:
+                raise ValueError(f"Fuzzy set obstructed!")
+
+    def check_membership_level(self, point: Numeric) -> float | Decimal:
+        for cut in self._alpha_cuts.values():
+            if point in cut:
+                return cut.level
+        return 0
+
+    @classmethod
+    def from_points(cls, alpha_levels: tuple[float | Decimal, ...],
+                    points: Iterable[tuple[Numeric, Numeric]]
+                    ) -> "FuzzySet":
+        """
+
+        :param alpha_levels: tuple of given levels to generate AlphaCuts
+        :param points: Iterable of points x and y to generate AlphaCuts and FuzzySet.
+        y should be normalized to (0-1) range.
+        :return:
+        """
+
+        points_to_checker = copy.deepcopy(points)
+        if len(list(points_to_checker)) != len(set(coord for coord, value in points_to_checker)):
+            raise ValueError(f"Fuzzy set domain obstructed.")
+        del points_to_checker
+
+        alpha_cuts_list = []
+        for level in alpha_levels:
+            left_borders, right_borders = [], []
+            last_coord = 0
+            in_cut = False
+            for coord, value in points:
+                if value >= level and in_cut == False:
+                    left_borders.append(coord)
+                    in_cut = True
+                if value < level and in_cut == True:
+                    right_borders.append(last_coord)
+                    in_cut = False
+                last_coord = coord
+            if len(left_borders) == len(right_borders) + 1:
+                right_borders.append(last_coord)
+            if len(left_borders) != 0:
+                alpha_cuts_list.append(AlphaCut(level, left_borders, right_borders))
+
+        return cls(alpha_cuts_list)
+
+
 
 def main() -> None:
-    ac0 = AlphaCut(0.01, 0.0, 1.0)
-    ac1 = AlphaCut(0.1, 0.0, 1.0)
-    ac2 = AlphaCut(0.1, 0.0, 1.0)
-    ac3 = AlphaCut(0.3, 0.0, 1.0)
-    fs = FuzzySet([ac1, ac3])
-    fs.add_alpha_cut(ac0)
-    fs.add_alpha_cut(ac1)
-    print(fs)
+    aci = AlphaCut(0.1, (-10, ), (100, ))
+    ac1 = AlphaCut(0.2, (1, 6), (3, 10))
+    ac4 = AlphaCut(0.1, (0.0, 6.0), (5.0, 12.))
+    ac5 = AlphaCut(0.2, (0.0, 6.0), (5.0, 12.))
+    ac6 = AlphaCut(0.4, (1.0, 7.0), (5.0, 110.))
+    fs = FuzzySet([ac4, ac5, ac6])
+
 
 if __name__ == "__main__":
     main()
