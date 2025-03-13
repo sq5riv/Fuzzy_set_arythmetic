@@ -4,8 +4,6 @@ from typing import Iterable
 from src.fuzzy_set import AlphaCut, FuzzySet, Numeric
 import pytest
 
-# TODO [ KM 5 ] Zastanowilbym sie nad przygotowaniem fixture dla ponizszych obiektow
-#  a nie osadzal je globalnie w tym miejscu.
 ac0 = AlphaCut(0.01, 0.0, 1.0)
 ac1 = AlphaCut(0.1, 0.0, 1.0)
 ac2 = AlphaCut(0.1, 0.0, 1.0)
@@ -61,33 +59,3 @@ def test_from_points(points: Iterable[tuple[Numeric, Numeric]]) -> None:
 def test_from_wrong_points(wrong_points: Iterable[tuple[Numeric, Numeric]]) -> None:
     with pytest.raises(ValueError, match=r"Fuzzy set domain obstructed." ):
         FuzzySet.from_points(tuple([0., 0.1, 0.2, 1.]), wrong_points)
-
-#  Podejscie 2
-#  Kiedy uzywamy matplotlib, mozna przechwycic elementy wykresu, ktore sa obiektami i sprawdzac ich strukture
-#  Przyklad:
-
-#  import matplotlib.pyplot as plt
-#  import numpy as np
-
-#  def generate_plot() -> tuple[matplotlib.figure.Figure, matplotlib.axes._axes.Axes]:
-#     fig, ax = plt.subplots()
-#     x = np.array([1, 2, 3])
-#     y = np.array([4, 5, 6])
-#     ax.plot(x, y)
-#     return fig, ax 
-
-#  def test_plot_data() -> None:
-    # fig, ax = generate_plot()
-    
-    # line = ax.lines[0]
-    # x_data = line.get_xdata()
-    
-    # assert list(x_data) == [1, 2, 3]
-
-    # plt.close(fig)  # Zamykamy wykres, aby nie wyświetlał się w tle
-
-# Podejscie 3
-# Mozna stosowac dedykowane biblioteki / pluginy, np. pytest-mpl
-# https://github.com/matplotlib/pytest-mpl
-
-# Jest kilka mozliwosci, w zaleznosci od tego jak szczegolowo chcemy wejsc w temat.

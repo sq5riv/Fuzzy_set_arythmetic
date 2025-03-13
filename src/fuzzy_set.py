@@ -39,6 +39,10 @@ class AlphaCut:
     def _same_type_check(left_borders: Border, right_borders: Border) -> None:
         if left_borders is None or right_borders is None:
             raise TypeError("Both left or right borders cannot be None")
+        
+        # TODO [ KM - 1 ] Ta uwaga to bardziej prosba o sprawdzenie, bo wydaje mi sie ze od strony skladni powinno byc:
+        # if isinstance(left_borders, (tuple, list)) and isinstance(right_borders, (tuple, list)):
+        # Sprawdz czy Twoja wersja dziala i jesli tak, nic nie zmieniamy
         if isinstance(left_borders, tuple | list) and isinstance(right_borders, tuple | list):
             if len(left_borders) == 0 == len(right_borders):
                 raise TypeError("Left or right borders can not be empty iterable")
@@ -53,12 +57,16 @@ class AlphaCut:
                             f"must be the same type {type(left_borders), type(right_borders)}.")
 
     def _level_check(self) -> None:
+        # TODO [ KM - 2 ] Ladniej i bardziej python way:
+        # if not (0 <= self._level <= 1):
         if 0 > self._level or self._level > 1:
             raise ValueError("Alpha-cut level must be between 0 and 1.")
 
     def _borders_check(self) -> None:
         if len(self.left_borders) != len(self.right_borders):
             raise ValueError("left and right borders must have same length.")
+        
+        # TODO [ KM - 3 ] Mozesz pominac [] w argumencie all
         if not all([left < right for left, right in zip(self.left_borders, self.right_borders)]):
             raise ValueError("Alpha-cut have to has positive length.")
         if len(self.left_borders) != 1:
@@ -153,6 +161,9 @@ class FuzzySet:
 
     def _check_alpha_levels_membership(self):
 
+        # TODO [ KM - 3 ] Mozesz pomyslec nad zredukowaniem konwersji do list i zrobic kod w stylu
+        # alpha_values = list(self._alpha_cuts.values())
+        # for i, j in zip(alpha_values[1:], alpha_values[:-1]):    
         for i, j in zip(list(self._alpha_cuts.values())[1:], list(self._alpha_cuts.values())[:-1]):
             if j not in i:
                 raise ValueError(f"Fuzzy set obstructed!")
@@ -176,6 +187,7 @@ class FuzzySet:
         """
 
         points_to_checker = copy.deepcopy(points)
+        # TODO [ KM - 4 ] Tutaj sprobuj len wolac bezposrednio na points_to_checker bez list
         if len(list(points_to_checker)) != len(set(coord for coord, value in points_to_checker)):
             raise ValueError(f"Fuzzy set domain obstructed.")
         del points_to_checker
