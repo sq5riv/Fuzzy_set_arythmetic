@@ -30,15 +30,22 @@ def test_border_prep_corect(left_borders, right_borders) -> None:
     if isinstance(right_borders, Numeric):
         assert ac.right_borders == tuple([right_borders])
 
-@pytest.mark.parametrize("left_borders, right_borders", [(1, (2, 3)), ((1, 3), 2),
+@pytest.mark.parametrize("left_borders, right_borders", [(1, (2, 3)),
+                                                         ((1, 3), 2),
                                                          (('a', 1), (1, 2)),
                                                          ((1.2, 1), (2, 3)),
                                                          ('a','b'),
                                                          (('a','b'),('c','d')),
-                                                         ((1, 2), (1, 'c'))
+                                                         ((1, 2), (1, 'c')),
+                                                         (None, 1),
+                                                         ([],[])
                                                          ])
 def test_border_prep_incorect(left_borders: float, right_borders: float ) -> None:
-    with pytest.raises(TypeError, match=r"(Invalid borders type:*|Not all borders are*|Left_borders and right_borders must be the same type*)"):
+    with pytest.raises(TypeError, match=r"(Invalid borders type:*|"
+                                        "Not all borders are*|"
+                                        "Left_borders and right_borders must be the same type*|"
+                                        "Both left or right borders cannot be None|"
+                                        "Left or right borders can not be empty iterable)"):
         AlphaCut(0.1, left_borders, right_borders)
 
 @pytest.mark.parametrize("left_borders, right_borders", [((1, 2),(2, 3)), ((1, 5), (3, 7))])

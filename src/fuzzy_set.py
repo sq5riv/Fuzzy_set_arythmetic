@@ -1,4 +1,5 @@
-from typing import Iterable, Union
+import copy
+from typing import Iterable, Union, Sized, Literal
 from decimal import Decimal
 
 
@@ -35,8 +36,10 @@ class AlphaCut:
     @staticmethod
     def _same_type_check(left_borders: Border, right_borders: Border) -> None:
         if left_borders is None or right_borders is None:
-            raise ValueError("Both left and right borders cannot be None")
+            raise TypeError("Both left or right borders cannot be None")
         if isinstance(left_borders, tuple | list) and isinstance(right_borders, tuple | list):
+            if len(left_borders) == 0 == len(right_borders):
+                raise TypeError("Left or right borders can not be empty iterable")
             expected_type = type(left_borders[0])
             if not all([isinstance(border, expected_type) for border in left_borders]):
                 raise TypeError(f"Not all borders are {expected_type}")
@@ -124,7 +127,7 @@ class FuzzySet:
         self._sort_a_cuts()
         self._check_alpha_levels_membership()
 
-    def add_alpha_cut(self, alpha_cuts: AlphaCut | Iterable[AlphaCut]) -> 'FuzzySet':
+    def add_alpha_cut(self, alpha_cuts: AlphaCut | Iterable[AlphaCut]) -> "FuzzySet":
         if isinstance(alpha_cuts, AlphaCut):
             alpha_cuts = (alpha_cuts,)
         for alpha_cut in alpha_cuts:
@@ -136,7 +139,7 @@ class FuzzySet:
         self._check_alpha_levels_membership()
         return self
 
-    def remove_alpha_cut(self, level: float | Decimal) -> 'FuzzySet':
+    def remove_alpha_cut(self, level: float | Decimal) -> "FuzzySet":
         if level in self._alpha_cuts.keys():
             self._alpha_cuts.pop(level)
             return self
@@ -150,8 +153,7 @@ class FuzzySet:
 
         for i, j in zip(list(self._alpha_cuts.values())[1:], list(self._alpha_cuts.values())[:-1]):
             if j not in i:
-                pass
-                #raise ValueError(f"Fuzzy set obstructed!")
+                raise ValueError(f"Fuzzy set obstructed!")
 
     def check_membership_level(self, point: Numeric) -> float | Decimal:
         for cut in self._alpha_cuts.values():
@@ -159,12 +161,51 @@ class FuzzySet:
                 return cut.level
         return 0
 
+    @classmethod
+    def from_points(cls, alpha_levels: tuple[float | Decimal, ...],
+                    points: Iterable[tuple[Numeric, Numeric]]
+                    ) -> "FuzzySet":
+        """
+
+        :param alpha_levels: tuple of given levels to generate AlphaCuts
+        :param points: Iterable of points x and y to generate AlphaCuts and FuzzySet.
+        y should be normalized to (0-1) range.
+        :return:
+        """
+
+        points_to_checker = copy.deepcopy(points)
+        if len(list(points_to_checker)) != len(set(coord for coord, value in points_to_checker)):
+            raise ValueError(f"Fuzzy set domain obstructed.")
+        del points_to_checker
+
+        alpha_cuts_list = []
+        for level in alpha_levels:
+            left_borders, right_borders = [], []
+            last_coord = 0
+            in_cut = False
+            for coord, value in points:
+                if value >= level and in_cut == False:
+                    left_borders.append(coord)
+                    in_cut = True
+                if value < level and in_cut == True:
+                    right_borders.append(last_coord)
+                    in_cut = False
+                last_coord = coord
+            if len(left_borders) == len(right_borders) + 1:
+                right_borders.append(last_coord)
+            if len(left_borders) != 0:
+                alpha_cuts_list.append(AlphaCut(level, left_borders, right_borders))
+
+        return cls(alpha_cuts_list)
+
+
+
 def main() -> None:
     aci = AlphaCut(0.1, (-10, ), (100, ))
     ac1 = AlphaCut(0.2, (1, 6), (3, 10))
     ac4 = AlphaCut(0.1, (0.0, 6.0), (5.0, 12.))
     ac5 = AlphaCut(0.2, (0.0, 6.0), (5.0, 12.))
-    ac6 = AlphaCut(0.4, (1.0, 7.0), (5.0, 11.))
+    ac6 = AlphaCut(0.4, (1.0, 7.0), (5.0, 110.))
     fs = FuzzySet([ac4, ac5, ac6])
 
 
