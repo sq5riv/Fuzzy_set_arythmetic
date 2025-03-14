@@ -1,9 +1,12 @@
-import copy
-from typing import Iterable, Union, Sized, Literal
+from dataclasses import dataclass
+from typing import Iterable, Union
 from decimal import Decimal
+from abc import ABC, abstractmethod
 
+from typing_extensions import override
 
-Numeric = int | float | Decimal
+Alpha =  float | Decimal
+Numeric = int | Alpha
 Border = list[Numeric] | tuple[Numeric, ...] | Numeric
 
 class AlphaCut:
@@ -15,7 +18,7 @@ class AlphaCut:
     :param right_borders: Right borders of the alpha-cut. If more than one value is present, the fuzzy set is not convex.
     """
 
-    def __init__(self, level: float | Decimal, left_borders: Border, right_borders: Border) -> None:
+    def __init__(self, level: Alpha, left_borders: Border, right_borders: Border) -> None:
         self._level = level
         self._same_type_check(left_borders, right_borders)
         self._left_borders = self._borders_prep(left_borders)
@@ -51,13 +54,13 @@ class AlphaCut:
                             f"must be the same type {type(left_borders), type(right_borders)}.")
 
     def _level_check(self) -> None:
-        if 0 > self._level or self._level > 1:
+        if not (0 <= self._level <= 1):
             raise ValueError("Alpha-cut level must be between 0 and 1.")
 
     def _borders_check(self) -> None:
         if len(self.left_borders) != len(self.right_borders):
             raise ValueError("left and right borders must have same length.")
-        if not all([left < right for left, right in zip(self.left_borders, self.right_borders)]):
+        if not all(left < right for left, right in zip(self.left_borders, self.right_borders)):
             raise ValueError("Alpha-cut have to has positive length.")
         if len(self.left_borders) != 1:
             if (not all([p < pp for p, pp in zip(self.left_borders, self.left_borders[1:])])
@@ -68,7 +71,7 @@ class AlphaCut:
 
 
     @property
-    def level(self) -> float | Decimal:
+    def level(self) -> Alpha:
         return self._level
 
     @property
@@ -139,7 +142,7 @@ class FuzzySet:
         self._check_alpha_levels_membership()
         return self
 
-    def remove_alpha_cut(self, level: float | Decimal) -> "FuzzySet":
+    def remove_alpha_cut(self, level: Alpha) -> "FuzzySet":
         if level in self._alpha_cuts.keys():
             self._alpha_cuts.pop(level)
             return self
@@ -150,19 +153,19 @@ class FuzzySet:
         self._alpha_cuts = dict(sorted(self._alpha_cuts.items(), reverse=True))
 
     def _check_alpha_levels_membership(self):
-
-        for i, j in zip(list(self._alpha_cuts.values())[1:], list(self._alpha_cuts.values())[:-1]):
+        alpha_values = list(self._alpha_cuts.values())
+        for i, j in zip(alpha_values[1:], alpha_values[:-1]):
             if j not in i:
                 raise ValueError(f"Fuzzy set obstructed!")
 
-    def check_membership_level(self, point: Numeric) -> float | Decimal:
+    def check_membership_level(self, point: Numeric) -> Alpha:
         for cut in self._alpha_cuts.values():
             if point in cut:
                 return cut.level
         return 0
 
     @classmethod
-    def from_points(cls, alpha_levels: tuple[float | Decimal, ...],
+    def from_points(cls, alpha_levels: tuple[Alpha, ...],
                     points: Iterable[tuple[Numeric, Numeric]]
                     ) -> "FuzzySet":
         """
@@ -170,20 +173,19 @@ class FuzzySet:
         :param alpha_levels: tuple of given levels to generate AlphaCuts
         :param points: Iterable of points x and y to generate AlphaCuts and FuzzySet.
         y should be normalized to (0-1) range.
-        :return:
+        :return: FuzzySet object
         """
 
-        points_to_checker = copy.deepcopy(points)
-        if len(list(points_to_checker)) != len(set(coord for coord, value in points_to_checker)):
-            raise ValueError(f"Fuzzy set domain obstructed.")
-        del points_to_checker
-
         alpha_cuts_list = []
+        check_run = True
         for level in alpha_levels:
             left_borders, right_borders = [], []
-            last_coord = 0
+            last_coord = None
             in_cut = False
             for coord, value in points:
+                if check_run and last_coord is not None:
+                    if not last_coord < coord:
+                        raise ValueError(f"Fuzzy set domain obstructed.")
                 if value >= level and in_cut == False:
                     left_borders.append(coord)
                     in_cut = True
@@ -195,9 +197,153 @@ class FuzzySet:
                 right_borders.append(last_coord)
             if len(left_borders) != 0:
                 alpha_cuts_list.append(AlphaCut(level, left_borders, right_borders))
+            check_run = False
 
         return cls(alpha_cuts_list)
 
+@dataclass
+class Tnorm(ABC):
+    """
+    Abstract class for T-norm calculations. Class is callable.
+    :param a: Alpha level of AlphaCut
+    :param b: Alpha level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm min
+    """
+
+    a: Alpha
+    b: Alpha
+    parameter: Numeric | None = None
+
+    def __post_init__(self):
+        self._types_validation()
+
+    def _types_validation(self):
+        if not (isinstance(self.a, float) and isinstance(self.b, float) or
+                isinstance(self.a, Decimal) and isinstance(self.b, Decimal)):
+            raise TypeError("Parameters a and b have to be the same type.")
+        if not isinstance(self.a, Alpha) or not isinstance(self.b, Alpha):
+            raise TypeError("Parameters a and b be Alpha type.")
+        if not isinstance(self.parameter, Numeric | None):
+            raise TypeError("Parameter parameter is not numeric.")
+
+    @abstractmethod
+    def __call__(self) -> Alpha:
+        pass
+
+class Min(Tnorm):
+    """
+    :param a: Alpha level of AlphaCut
+    :param b: Alpha level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm min
+    """
+
+    @override
+    def __call__(self) -> Alpha:
+
+        return min(self.a, self.b)
+
+class Product(Tnorm):
+    """
+    :param a: Alpha level of AlphaCut
+    :param b: Alpha level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm product
+    """
+
+    @override
+    def __call__(self) -> Alpha:
+
+        return self.a * self.b
+
+class Lukasiewicz(Tnorm):
+    """
+    :param a: Alpha level of AlphaCut
+    :param b: Alpha level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm Lukasiewicz
+    """
+
+    @override
+    def __call__(self) -> Alpha:
+
+        return max(0, self.a + self.b - 1)
+
+class Drastic(Tnorm):
+    """
+    :param a: Alpha level of AlphaCut
+    :param b: Alpha level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm Drastic
+    """
+
+    @override
+    def __call__(self) -> Alpha:
+
+        if self.a == 1:
+            return self.b
+        elif self.b == 1:
+            return self.a
+        else:
+            return 0
+
+class Nilpotent(Tnorm):
+    """
+    :param a: Alpha level of AlphaCut
+    :param b: Alpha level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm Nilpotent
+    """
+
+    @override
+    def __call__(self) -> Alpha:
+
+        if self.a + self.b > 1:
+            return min(self.a, self.b)
+        else:
+            return 0
+
+class Hamacher(Tnorm):
+    """
+    :param a: Alpha level of AlphaCut
+    :param b: Alpha level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm Hamacher
+    """
+
+    @override
+    def __call__(self) -> Alpha:
+
+        if self.a == self.b and self.a == 0:
+            return 0
+        else:
+            return (self.a * self.b) / (self.a + self.b - self.a * self.b)
+
+
+class Sklar(Tnorm):
+    """
+    :param a: Alpha level of AlphaCut
+    :param b: Alpha level of AlphaCut
+    :param parameter: parameter of Sklar's T-norm
+    :return: returns T-norm Sklar
+    """
+
+    @override
+    def __call__(self) -> Alpha:
+        if self.parameter is None:
+            raise AttributeError("Sklar's T-norm parameter can't be None.")
+
+        if self.parameter == float('-inf'):
+            return Min(self.a, self.b)()
+        elif float('-inf') < self.parameter < 0:
+            return (self.a ** self.parameter + self.b ** self.parameter - 1) ** (1 / self.parameter)
+        elif self.parameter == 0:
+            return Product(self.a * self.b)()
+        elif 0 < self.parameter < float('inf'):
+            return max(0, (self.a ** self.parameter + self.b ** self.parameter - 1) ** (1 / self.parameter))
+        elif self.parameter == float('inf'):
+            return Drastic(self.a, self.b)()
 
 
 def main() -> None:
