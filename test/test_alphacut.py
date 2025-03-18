@@ -5,12 +5,12 @@ import pytest
 def test_alpha_cut() -> None:
     assert AlphaCut(0.1, 0.0, 1.0)
 
-@pytest.mark.parametrize("a", [0,0.5,1])
+@pytest.mark.parametrize("a", [0.,0.5,1.])
 def test_get_alpha_level(a: float) -> None:
     ac = AlphaCut(a, 0.0, 1.0)
     assert ac.level == a
 
-@pytest.mark.parametrize("a", [0,0.5,1])
+@pytest.mark.parametrize("a", [0.,0.5,1.])
 def test_alpha_cut_correct_level(a: float) -> None:
     assert AlphaCut(a, 0.0, 1.0)
 
