@@ -24,6 +24,8 @@ class Alpha:
     def value(self) -> AlphaType:
         return self._value
 
+    # TODO [ KM - 6 ] Mozesz pomysle tutaj nad zmiana nazwy metody poniewaz jak piszesz is_.. to sugerujesz
+    #  ze metoda zwraca bool
     def _is_types_the_same_type(self, other) -> type:
         rettype = type(other.value)
         if not isinstance(self.value, rettype):
@@ -33,6 +35,9 @@ class Alpha:
     def __add__(self, other: "Alpha") -> "Alpha":
         try:
             cast = self._is_types_the_same_type(other)
+            # TODO [ KM - 7] Tutaj sie wszystko ok dodalo? Funkcja cast zwraca type i zastanawia mnie
+            #  jaki bedzie efekt dodawania dwoch type? Moze lepiej najpierw sprawdzic zgodnosc typow a 
+            #  potem po prostu dodac obiekty, kiedy zgodnosc typow zachodzi. Sprawdz to prosze jeszcze.
             return Alpha(cast(self.value) + cast(other.value))
         except TypeError as e:
             raise TypeError(f"Cannot add {other} to {self}. {e}")
@@ -59,6 +64,8 @@ class Alpha:
         :param other: another Alpha membership object.
         :return: True if alpha levels are the same.
         """
+
+        # TODO [ KM - 4 ] W __eq__ w obliczu problemu zwraca False lub NotImplemented nie robimy raise
         if not isinstance(other, Alpha):
             raise NotImplementedError(f"Cannot compare {self} to {other}")
         try:
@@ -95,6 +102,10 @@ class Border:
             raise TypeError(f"Border must be of type Numeric, not {type(self._dtrial)}")
         if not all(isinstance(elem, type(self._dtrial)) for elem in self._border):
             raise TypeError(f"All elements of border must be the same type")
+        
+        # TODO [ KM - 5 ] Mozna pomyslec nad:
+        # if any(last <= nxt for last, nxt in zip(self._border[:-1], self._border[1:])):
+        #    self._covered = True
         for last, nxt in zip(self._border[:-1], self._border[1:]):
             if last <= nxt:
                 self._covered = True
@@ -132,6 +143,10 @@ class Border:
 
     @staticmethod
     def are_left_right(left: 'Border', right: 'Border') -> bool:
+        # TODO [KM - 8] Ta uwaga jest bardziej dla upewnienia sie ze to co podajesz jako argumenty zip
+        #  czyli left.borders oraz right.borders ma te same wymiary, zeby zip wszystko polaczyl w pary,
+        #  chyba ze nie potrzebujesz polaczenia kazdy z kazdym. Jesli to nie zostalo wczesniej sprawdzone
+        #  mozesz tutaj zwrocic na to uwage.
         if type(left.dtrial) != type(right.dtrial):
             raise TypeError(f"Borders must have the same data type")
         elif len(left) != len(right):

@@ -43,10 +43,8 @@ class AlphaCut:
         if left_borders is None or right_borders is None:
             raise TypeError("Both left or right borders cannot be None")
         
-        # TODO [ KM - 1 ] Ta uwaga to bardziej prosba o sprawdzenie, bo wydaje mi sie ze od strony skladni powinno byc:
-        # if isinstance(left_borders, (tuple, list)) and isinstance(right_borders, (tuple, list)):
-        # Sprawdz czy Twoja wersja dziala i jesli tak, nic nie zmieniamy
         if isinstance(left_borders, tuple | list) and isinstance(right_borders, tuple | list):
+
             if len(left_borders) == 0 == len(right_borders):
                 raise TypeError("Left or right borders can not be empty iterable")
             expected_type = type(left_borders[0])
@@ -91,6 +89,13 @@ class AlphaCut:
         if isinstance(narrow, AlphaCut):
             if narrow.left_borders[0] < self.left_borders[0]:
                 return False
+            
+            # TODO [ KM - 1 ] Tutaj mozesz sprobowac zwiekszyc czytelnosc poprzez konstrukcje
+            # for left_border, right_border in zip(narrow.left_borders, narrow.right_borders):
+            #   index_to_check = next((index for index, value in enumerate(self.left_borders) if value >= left_border), -1)
+            # Przy czym czytelnosc to pojecie wzgledne i moje rozwiazanie nie musi wydawac Ci sie bardziej czytelne,
+            # bardziej wrzucam dla analizy kodu i innego podejscia
+
             for left_border, right_border in zip(narrow.left_borders, narrow.right_borders):
                 index_to_check = -1
                 for index, value in enumerate(self.left_borders):
@@ -144,17 +149,17 @@ class FuzzySet:
         self._check_alpha_levels_membership()
         return self
 
-    def remove_alpha_cut(self, level: AlphaType) -> "FuzzySet":
+    def remove_alpha_cut(self, level: AlphaType) -> "FuzzySet":  # TODO [KM - 2] W takich miejscach piszemy Self
         if level in self._alpha_cuts.keys():
             self._alpha_cuts.pop(level)
             return self
         else:
             raise ValueError(f"There is no alpha-cut level {level} in fuzzy set.")
 
-    def _sort_a_cuts(self):
+    def _sort_a_cuts(self):  # TODO [ KM - 3 ] Typ zwracany -> None
         self._alpha_cuts = dict(sorted(self._alpha_cuts.items(), reverse=True))
 
-    def _check_alpha_levels_membership(self):
+    def _check_alpha_levels_membership(self):  # TODO [ KM - 4 ] Typ zwracany -> None
         alpha_values = list(self._alpha_cuts.values())
         for i, j in zip(alpha_values[1:], alpha_values[:-1]):
             if j not in i:
