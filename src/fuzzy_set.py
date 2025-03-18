@@ -1,32 +1,35 @@
-import copy
-from typing import Iterable, Union, Sized, Literal
+from dataclasses import dataclass
+from fractions import Fraction
+from typing import Iterable, Union, cast
 from decimal import Decimal
+from abc import ABC, abstractmethod
 
+from typing_extensions import override
+from src.fs_types import Alpha
 
-Numeric = int | float | Decimal
-Border = list[Numeric] | tuple[Numeric, ...] | Numeric
+AlphaType = Union[float, Decimal, Fraction]
+Numeric = Union[int, AlphaType]
+BorderType = list[Numeric] | tuple[Numeric, ...] | Numeric
 
 
 class AlphaCut:
     """
     Represents an α-cut of a fuzzy set.
 
-    :param level: Alpha-cut level.
+    :param level: AlphaType-cut level.
     :param left_borders: Left borders of the alpha-cut. If more than one value is present, the fuzzy set is not convex.
     :param right_borders: Right borders of the alpha-cut. If more than one value is present, the fuzzy set is not convex.
     """
 
-    def __init__(self, level: float | Decimal, left_borders: Border, right_borders: Border) -> None:
-        self._level = level
+    def __init__(self, level: AlphaType | Alpha , left_borders: BorderType, right_borders: BorderType) -> None:
+        self._level = level if isinstance(level, Alpha) else Alpha(level)
         self._same_type_check(left_borders, right_borders)
         self._left_borders = self._borders_prep(left_borders)
         self._right_borders = self._borders_prep(right_borders)
-        self._level_check()
         self._borders_check()
 
     @staticmethod
-    def _borders_prep(borders: Border) -> tuple[Numeric, ...]:
-
+    def _borders_prep(borders: BorderType) -> tuple[Numeric, ...]:
         if isinstance(borders, tuple) and all([isinstance(i, Numeric) for i in borders]):
             return borders
         if isinstance(borders, list) and all([isinstance(i, Numeric) for i in borders]):
@@ -36,7 +39,7 @@ class AlphaCut:
         raise TypeError(f"Invalid borders type: {type(borders)}")
 
     @staticmethod
-    def _same_type_check(left_borders: Border, right_borders: Border) -> None:
+    def _same_type_check(left_borders: BorderType, right_borders: BorderType) -> None:
         if left_borders is None or right_borders is None:
             raise TypeError("Both left or right borders cannot be None")
         
@@ -56,18 +59,10 @@ class AlphaCut:
             raise TypeError(f"Left_borders and right_borders "
                             f"must be the same type {type(left_borders), type(right_borders)}.")
 
-    def _level_check(self) -> None:
-        # TODO [ KM - 2 ] Ladniej i bardziej python way:
-        # if not (0 <= self._level <= 1):
-        if 0 > self._level or self._level > 1:
-            raise ValueError("Alpha-cut level must be between 0 and 1.")
-
     def _borders_check(self) -> None:
         if len(self.left_borders) != len(self.right_borders):
             raise ValueError("left and right borders must have same length.")
-        
-        # TODO [ KM - 3 ] Mozesz pominac [] w argumencie all
-        if not all([left < right for left, right in zip(self.left_borders, self.right_borders)]):
+        if not all(left < right for left, right in zip(self.left_borders, self.right_borders)):
             raise ValueError("Alpha-cut have to has positive length.")
         if len(self.left_borders) != 1:
             if (not all([p < pp for p, pp in zip(self.left_borders, self.left_borders[1:])])
@@ -78,8 +73,8 @@ class AlphaCut:
 
 
     @property
-    def level(self) -> float | Decimal:
-        return self._level
+    def level(self) -> AlphaType:
+        return self._level.value
 
     @property
     def left_borders(self) -> tuple[Numeric, ...]:
@@ -128,7 +123,7 @@ class FuzzySet:
     :param alpha_cuts: Iterable of alpha-cuts.
     """
     def __init__(self, alpha_cuts: Iterable[AlphaCut] | AlphaCut):
-        self._alpha_cuts: dict[float|Decimal, AlphaCut] = dict()
+        self._alpha_cuts: dict[float|Decimal|Fraction, AlphaCut] = dict()
         for alpha_cut in alpha_cuts if not isinstance(alpha_cuts, AlphaCut) else (alpha_cuts,):
             if alpha_cut.level not in self._alpha_cuts.keys():
                 self._alpha_cuts[alpha_cut.level] = alpha_cut
@@ -149,7 +144,7 @@ class FuzzySet:
         self._check_alpha_levels_membership()
         return self
 
-    def remove_alpha_cut(self, level: float | Decimal) -> "FuzzySet":
+    def remove_alpha_cut(self, level: AlphaType) -> "FuzzySet":
         if level in self._alpha_cuts.keys():
             self._alpha_cuts.pop(level)
             return self
@@ -160,22 +155,19 @@ class FuzzySet:
         self._alpha_cuts = dict(sorted(self._alpha_cuts.items(), reverse=True))
 
     def _check_alpha_levels_membership(self):
-
-        # TODO [ KM - 3 ] Mozesz pomyslec nad zredukowaniem konwersji do list i zrobic kod w stylu
-        # alpha_values = list(self._alpha_cuts.values())
-        # for i, j in zip(alpha_values[1:], alpha_values[:-1]):    
-        for i, j in zip(list(self._alpha_cuts.values())[1:], list(self._alpha_cuts.values())[:-1]):
+        alpha_values = list(self._alpha_cuts.values())
+        for i, j in zip(alpha_values[1:], alpha_values[:-1]):
             if j not in i:
                 raise ValueError(f"Fuzzy set obstructed!")
 
-    def check_membership_level(self, point: Numeric) -> float | Decimal:
+    def check_membership_level(self, point: Numeric) -> AlphaType:
         for cut in self._alpha_cuts.values():
             if point in cut:
                 return cut.level
         return 0
 
     @classmethod
-    def from_points(cls, alpha_levels: tuple[float | Decimal, ...],
+    def from_points(cls, alpha_levels: tuple[AlphaType, ...],
                     points: Iterable[tuple[Numeric, Numeric]]
                     ) -> "FuzzySet":
         """
@@ -183,21 +175,19 @@ class FuzzySet:
         :param alpha_levels: tuple of given levels to generate AlphaCuts
         :param points: Iterable of points x and y to generate AlphaCuts and FuzzySet.
         y should be normalized to (0-1) range.
-        :return:
+        :return: FuzzySet object
         """
 
-        points_to_checker = copy.deepcopy(points)
-        # TODO [ KM - 4 ] Tutaj sprobuj len wolac bezposrednio na points_to_checker bez list
-        if len(list(points_to_checker)) != len(set(coord for coord, value in points_to_checker)):
-            raise ValueError(f"Fuzzy set domain obstructed.")
-        del points_to_checker
-
         alpha_cuts_list = []
+        check_run = True
         for level in alpha_levels:
             left_borders, right_borders = [], []
-            last_coord = 0
+            last_coord = None
             in_cut = False
             for coord, value in points:
+                if check_run and last_coord is not None:
+                    if not last_coord < coord:
+                        raise ValueError(f"Fuzzy set domain obstructed.")
                 if value >= level and in_cut == False:
                     left_borders.append(coord)
                     in_cut = True
@@ -209,9 +199,157 @@ class FuzzySet:
                 right_borders.append(last_coord)
             if len(left_borders) != 0:
                 alpha_cuts_list.append(AlphaCut(level, left_borders, right_borders))
+            check_run = False
 
         return cls(alpha_cuts_list)
+'''
+@dataclass
+class Tnorm(ABC):
+    """
+    Abstract class for T-norm calculations. Class is callable.
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm min
+    """
 
+    a: AlphaType
+    b: AlphaType
+    parameter: Numeric | None = None
+
+    def __post_init__(self):
+        self._types_validation()
+
+    def _types_validation(self):
+        if (not isinstance(self.a, float) and isinstance(self.b, float) or
+                not isinstance(self.a, Decimal) and isinstance(self.b, Decimal)):
+            raise TypeError("Parameters a and b have to be the same type.")
+        if not isinstance(self.a, AlphaType) or not isinstance(self.b, AlphaType):
+            raise TypeError("Parameters a and b be AlphaType type.")
+        if not isinstance(self.parameter, Numeric | None):
+            raise TypeError("Parameter parameter is not numeric.")
+
+    @abstractmethod
+    def __call__(self) -> AlphaType:
+        pass
+
+class Min(Tnorm):
+    """
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm min
+    """
+
+    @override
+    def __call__(self) -> AlphaType:
+
+        return min(self.a, self.b)
+
+class Product(Tnorm):
+    """
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm product
+    """
+
+    @override
+    def __call__(self) -> AlphaType:
+        if isinstance(self.a, float):
+            self.b = float(self.b)
+            return cast(AlphaType, self.a * self.b)
+        else: # isinstance(self.a, Decimal):
+            self.b = Decimal(self.b)
+            return cast(AlphaType, self.a * self.b)
+
+class Lukasiewicz(Tnorm):
+    """
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm Lukasiewicz
+    """
+
+    @override
+    def __call__(self) -> AlphaType:
+
+        return max(0, self.a + self.b - 1)
+
+class Drastic(Tnorm):
+    """
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm Drastic
+    """
+
+    @override
+    def __call__(self) -> AlphaType:
+
+        if self.a == 1:
+            return self.b
+        elif self.b == 1:
+            return self.a
+        else:
+            return 0
+
+class Nilpotent(Tnorm):
+    """
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm Nilpotent
+    """
+
+    @override
+    def __call__(self) -> AlphaType:
+
+        if self.a + self.b > 1:
+            return min(self.a, self.b)
+        else:
+            return 0
+
+class Hamacher(Tnorm):
+    """
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm Hamacher
+    """
+
+    @override
+    def __call__(self) -> AlphaType:
+
+        if self.a == self.b and self.a == 0:
+            return 0
+        else:
+            return (self.a * self.b) / (self.a + self.b - self.a * self.b)
+
+
+class Sklar(Tnorm):
+    """
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: parameter of Sklar's T-norm
+    :return: returns T-norm Sklar
+    """
+
+    @override
+    def __call__(self) -> AlphaType:
+        if self.parameter is None:
+            raise AttributeError("Sklar's T-norm parameter can't be None.")
+
+        if self.parameter == float('-inf'):
+            return Min(self.a, self.b)()
+        elif float('-inf') < self.parameter < 0:
+            return (self.a ** self.parameter + self.b ** self.parameter - 1) ** (1 / self.parameter)
+        elif self.parameter == 0:
+            return Product(self.a * self.b)()
+        elif 0 < self.parameter < float('inf'):
+            return max(0, (self.a ** self.parameter + self.b ** self.parameter - 1) ** (1 / self.parameter))
+        else: #  self.parameter == float('inf'):
+            return Drastic(self.a, self.b)()
 
 
 def main() -> None:
@@ -225,3 +363,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+'''

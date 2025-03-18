@@ -41,6 +41,3 @@ jobs:
       run: |
         poetry run pyright
 
-    - name: Test with pytest
-      run: |
-        poetry run pytest

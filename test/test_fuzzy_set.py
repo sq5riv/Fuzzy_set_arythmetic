@@ -54,7 +54,7 @@ def test_check_alpha_level_membership_fuzzy_set_incorrect() -> None:
         FuzzySet([ac0, ac1, ac3, ac7])
 
 def test_from_points(points: Iterable[tuple[Numeric, Numeric]]) -> None:
-    assert FuzzySet.from_points(tuple([0, 0.1, 0.2, 1]), points)
+    assert FuzzySet.from_points(tuple([0., 0.1, 0.2, 1.]), points)
 
 def test_from_wrong_points(wrong_points: Iterable[tuple[Numeric, Numeric]]) -> None:
     with pytest.raises(ValueError, match=r"Fuzzy set domain obstructed." ):
