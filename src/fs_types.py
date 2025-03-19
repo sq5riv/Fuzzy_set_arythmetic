@@ -138,6 +138,8 @@ class Border:
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Border):
             return False
+        
+        # TODO [ KM - 1 ] Wytarczy return self.borders == other.borders
         if self.borders == other.borders:
             return True
         else:
@@ -145,12 +147,27 @@ class Border:
 
     @staticmethod
     def are_left_right(left: 'Border', right: 'Border') -> bool:
+        # TODO [ KM - 2 ] Kiedy masz raise a na koniec return mozesz pisac bez elif czyli
+        #  if warunek1
+        #     raise ..
+        #  if warunek2
+        #     raise ..
+        #  ...
+        #  return ...
+        # I tez mamy ten "konflikt" czy w przypadku funkcji ktora zwraca bool
+        # nie robic tak, ze jesli cos nie gra to zwracamy False a jak ok to True
+        # czyli zamiast raise stosowac return False, ale moze byc tak ze rzucanie
+        # roznego rodzaju wyjatkow moze potem byc obslugiwane na rozne sposoby, wtedy
+        # pomysalbym o zrobieniu tej metody ze zwraca None i wywolujemy ja na zasadzie
+        # ze jesli nie ma wyjatku to idziemy dalej
         if type(left.dtrial) != type(right.dtrial):
             raise TypeError(f"Borders must have the same data type")
         elif len(left) != len(right):
             raise ValueError(f"Borders must have the same length")
         elif not all(l <= r for l, r in zip(left.borders, right.borders)):
             raise ValueError(f"Alpha_cut length cant be negative")
+        # TODO [ KM - 3 ] Tutaj nie pamietam, czy juz nie bylo podobnej dyskusji, ze nie potrzeba
+        #  [] w all, ale type checker moze sie "czepiac". Sprawdz to prosze.
         elif not all([left >= right for left, right in zip(left.borders[1:], right.borders[:-1])]):
             raise ValueError("Two parts of alpha-cut can't cover.")
         elif left.covered or right.covered:
@@ -208,7 +225,7 @@ class Border:
                     for oborder in other.borders])
         return Border(result, True)
 
-    def __sub__(self, other: 'Border') -> "Border":
+    def __sub__(self, other: 'Border') -> "Border":  # TODO [ KM - 4 ] W takich miejscach Self
         cast_to = type(self.dtrial)
         if not isinstance(other.dtrial, cast_to):
             raise TypeError(f"To add borders must have the same data type")
