@@ -127,7 +127,7 @@ class FuzzySet:
         self._sort_a_cuts()
         self._check_alpha_levels_membership()
 
-    def add_alpha_cut(self, alpha_cuts: AlphaCut | Iterable[AlphaCut]) -> "FuzzySet":
+    def add_alpha_cut(self, alpha_cuts: AlphaCut | Iterable[AlphaCut]) -> 'FuzzySet':
         if isinstance(alpha_cuts, AlphaCut):
             alpha_cuts = (alpha_cuts,)
         for alpha_cut in alpha_cuts:
@@ -139,17 +139,17 @@ class FuzzySet:
         self._check_alpha_levels_membership()
         return self
 
-    def remove_alpha_cut(self, level: AlphaType) -> "FuzzySet":
+    def remove_alpha_cut(self, level: AlphaType) -> 'FuzzySet':
         if level in self._alpha_cuts.keys():
             self._alpha_cuts.pop(level)
             return self
         else:
             raise ValueError(f"There is no alpha-cut level {level} in fuzzy set.")
 
-    def _sort_a_cuts(self):
+    def _sort_a_cuts(self) -> None:
         self._alpha_cuts = dict(sorted(self._alpha_cuts.items(), reverse=True))
 
-    def _check_alpha_levels_membership(self):
+    def _check_alpha_levels_membership(self) -> None:
         alpha_values = list(self._alpha_cuts.values())
         for i, j in zip(alpha_values[1:], alpha_values[:-1]):
             if j not in i:
@@ -164,7 +164,7 @@ class FuzzySet:
     @classmethod
     def from_points(cls, alpha_levels: tuple[AlphaType, ...],
                     points: Iterable[tuple[Numeric, Numeric]]
-                    ) -> "FuzzySet":
+                    ) -> 'FuzzySet':
         """
 
         :param alpha_levels: tuple of given levels to generate AlphaCuts
