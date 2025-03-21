@@ -1,15 +1,13 @@
+import pytest
 from dataclasses import dataclass
 from fractions import Fraction
 from typing import Iterable, Union, cast
 from decimal import Decimal
 from abc import ABC, abstractmethod
 
-from typing_extensions import override
-from src.fs_types import Alpha
 
-AlphaType = Union[float, Decimal, Fraction]
-Numeric = Union[int, AlphaType]
-BorderType = list[Numeric] | tuple[Numeric, ...] | Numeric
+from typing_extensions import override
+from src.fs_types import Alpha, AlphaType, Numeric, BorderType
 
 class AlphaCut:
     """
@@ -197,35 +195,43 @@ class FuzzySet:
             check_run = False
 
         return cls(alpha_cuts_list)
-'''
+
+@pytest.mark.skip(reason="Skipping tests for abstract class")
 @dataclass
 class Tnorm(ABC):
     """
     Abstract class for T-norm calculations. Class is callable.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
-    :param parameter: Not used
-    :return: returns T-norm min
+    :param parameter: T-norm parameter if needed.
+    :return: returns T-norm value
     """
 
-    a: AlphaType
-    b: AlphaType
-    parameter: Numeric | None = None
+    a: Alpha
+    b: Alpha
+    parameter: float | None = None
 
     def __post_init__(self):
         self._types_validation()
 
     def _types_validation(self):
-        if (not isinstance(self.a, float) and isinstance(self.b, float) or
-                not isinstance(self.a, Decimal) and isinstance(self.b, Decimal)):
-            raise TypeError("Parameters a and b have to be the same type.")
-        if not isinstance(self.a, AlphaType) or not isinstance(self.b, AlphaType):
-            raise TypeError("Parameters a and b be AlphaType type.")
-        if not isinstance(self.parameter, Numeric | None):
-            raise TypeError("Parameter parameter is not numeric.")
+        if not (isinstance(self.a, Alpha) and isinstance(self.b, Alpha)):
+            raise TypeError(f"T-norm calculation requires Alpha's.")
+        self.a.is_types_the_same_type_and_return(self.b)
+
+    def _set_zero_one_alpha(self) -> None:
+        if isinstance(self.a.value, float):
+            self.zero: Alpha = Alpha(0.0)
+            self.one: Alpha = Alpha(1.0)
+        elif isinstance(self.a.value, Decimal):
+            self.zero: Alpha = Alpha(Decimal(0))
+            self.one: Alpha = Alpha(Decimal(1))
+        else:
+            self.zero: Alpha = Alpha(Fraction(0))
+            self.one: Alpha = Alpha(Fraction(1))
 
     @abstractmethod
-    def __call__(self) -> AlphaType:
+    def __call__(self) -> Alpha:
         pass
 
 class Min(Tnorm):
@@ -237,9 +243,22 @@ class Min(Tnorm):
     """
 
     @override
-    def __call__(self) -> AlphaType:
+    def __call__(self) -> Alpha:
 
         return min(self.a, self.b)
+
+class Max(Tnorm):
+    """
+    :param a: AlphaType level of AlphaCut
+    :param b: AlphaType level of AlphaCut
+    :param parameter: Not used
+    :return: returns T-norm max
+    """
+
+    @override
+    def __call__(self) -> Alpha:
+
+        return max(self.a, self.b)
 
 class Product(Tnorm):
     """
@@ -250,13 +269,9 @@ class Product(Tnorm):
     """
 
     @override
-    def __call__(self) -> AlphaType:
-        if isinstance(self.a, float):
-            self.b = float(self.b)
-            return cast(AlphaType, self.a * self.b)
-        else: # isinstance(self.a, Decimal):
-            self.b = Decimal(self.b)
-            return cast(AlphaType, self.a * self.b)
+    def __call__(self) -> Alpha:
+        return self.a * self.b
+
 
 class Lukasiewicz(Tnorm):
     """
@@ -267,9 +282,11 @@ class Lukasiewicz(Tnorm):
     """
 
     @override
-    def __call__(self) -> AlphaType:
-
-        return max(0, self.a + self.b - 1)
+    def __call__(self) -> Alpha:
+        self._set_zero_one_alpha()
+        v2 = self.a  + self.b - self.one
+        v2.small_check = False
+        return max(self.zero, v2)
 
 class Drastic(Tnorm):
     """
@@ -280,14 +297,14 @@ class Drastic(Tnorm):
     """
 
     @override
-    def __call__(self) -> AlphaType:
-
-        if self.a == 1:
+    def __call__(self) -> Alpha:
+        self._set_zero_one_alpha()
+        if self.a == self.one:
             return self.b
-        elif self.b == 1:
+        elif self.b == self.one:
             return self.a
         else:
-            return 0
+            return self.zero
 
 class Nilpotent(Tnorm):
     """
@@ -298,12 +315,12 @@ class Nilpotent(Tnorm):
     """
 
     @override
-    def __call__(self) -> AlphaType:
-
-        if self.a + self.b > 1:
-            return min(self.a, self.b)
+    def __call__(self) -> Alpha:
+        self._set_zero_one_alpha()
+        if self.a + self.b > self.one:
+            return Min(self.a, self.b)()
         else:
-            return 0
+            return self.zero
 
 class Hamacher(Tnorm):
     """
@@ -314,10 +331,10 @@ class Hamacher(Tnorm):
     """
 
     @override
-    def __call__(self) -> AlphaType:
-
-        if self.a == self.b and self.a == 0:
-            return 0
+    def __call__(self) -> Alpha:
+        self._set_zero_one_alpha()
+        if self.a == self.b and self.a == self.zero:
+            return self.zero
         else:
             return (self.a * self.b) / (self.a + self.b - self.a * self.b)
 
@@ -331,31 +348,30 @@ class Sklar(Tnorm):
     """
 
     @override
-    def __call__(self) -> AlphaType:
-        if self.parameter is None:
+    def __call__(self) -> Alpha:
+        if isinstance(self.parameter, type(None)):
             raise AttributeError("Sklar's T-norm parameter can't be None.")
+        if isinstance(self.a.value, Decimal):
+            self.par_alpha = Alpha(Decimal(self.parameter), True)
+        elif isinstance(self.a.value, Fraction):
+            self.par_alpha = Alpha(Fraction(self.parameter), True)
+        else:
+            self.par_alpha = Alpha(self.parameter, True)
+        self._set_zero_one_alpha()
+
 
         if self.parameter == float('-inf'):
             return Min(self.a, self.b)()
         elif float('-inf') < self.parameter < 0:
-            return (self.a ** self.parameter + self.b ** self.parameter - 1) ** (1 / self.parameter)
+            ret_alpha = (self.a ** self.par_alpha + self.b ** self.par_alpha - self.one) ** (self.one / self.par_alpha)
+            ret_alpha.small_check = False
+            return ret_alpha
         elif self.parameter == 0:
-            return Product(self.a * self.b)()
+            return Product(self.a, self.b)()
         elif 0 < self.parameter < float('inf'):
-            return max(0, (self.a ** self.parameter + self.b ** self.parameter - 1) ** (1 / self.parameter))
+            mid_alpha = (self.a ** self.par_alpha + self.b ** self.par_alpha - self.one) ** (self.one / self.par_alpha)
+            mid_alpha.small_check = False
+            return Max(self.zero, mid_alpha)()
         else: #  self.parameter == float('inf'):
             return Drastic(self.a, self.b)()
 
-
-def main() -> None:
-    aci = AlphaCut(0.1, (-10, ), (100, ))
-    ac1 = AlphaCut(0.2, (1, 6), (3, 10))
-    ac4 = AlphaCut(0.1, (0.0, 6.0), (5.0, 12.))
-    ac5 = AlphaCut(0.2, (0.0, 6.0), (5.0, 12.))
-    ac6 = AlphaCut(0.4, (1.0, 7.0), (5.0, 110.))
-    fs = FuzzySet([ac4, ac5, ac6])
-
-
-if __name__ == "__main__":
-    main()
-'''

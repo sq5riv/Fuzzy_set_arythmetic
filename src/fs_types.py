@@ -10,19 +10,29 @@ class Alpha:
     """
     :param value: membership level between 0 and 1.
     """
-    def __init__(self, value: AlphaType):
+    def __init__(self, value: AlphaType, small_check: bool = False):
         self._value: AlphaType = value
+        self._small_check: bool = small_check
         self._type_check()
 
     def _type_check(self):
         if not isinstance(self.value, AlphaType):
             raise TypeError(f"Alpha value must be a float, Decimal or Fraction, not {type(self.value)}")
-        if  not 1 >= self.value >= 0:
-            raise ValueError("Alpha-cut level must be between 0 and 1.")
+        if self.small_check == False and not 1 >= self.value >= 0:
+            raise ValueError(f"Alpha-cut level must be between 0 and 1. Given value: {self.value}")
 
     @property
     def value(self) -> AlphaType:
         return self._value
+
+    @property
+    def small_check(self) -> bool:
+        return self._small_check
+
+    @small_check.setter
+    def small_check(self, small_check: bool):
+        self._small_check = small_check
+        self._type_check()
 
     def is_types_the_same_type_and_return(self, other) -> type:
         rettype = type(other.value)
@@ -33,7 +43,7 @@ class Alpha:
     def __add__(self, other: "Alpha") -> "Alpha":
         try:
             cast_to = self.is_types_the_same_type_and_return(other)
-            return Alpha(cast_to(self.value) + cast_to(other.value))
+            return Alpha(cast_to(self.value) + cast_to(other.value), True)
         except TypeError as e:
             raise TypeError(f"Cannot add {other} to {self}. {e}")
 
@@ -41,7 +51,7 @@ class Alpha:
     def __sub__(self, other: "Alpha") -> "Alpha":
         try:
             cast_to = self.is_types_the_same_type_and_return(other)
-            return Alpha(cast_to(self.value) - cast_to(other.value))
+            return Alpha(cast_to(self.value) - cast_to(other.value), True)
         except TypeError as e:
             raise TypeError(f"Cannot subtract {other} to {self}. {e}")
 
@@ -52,6 +62,22 @@ class Alpha:
             return Alpha(cast_to(self.value) * cast_to(other.value))
         except TypeError as e:
             raise TypeError(f"Cannot multiply {other} to {self}. {e}")
+
+    def __truediv__(self, other: "Alpha") -> "Alpha":
+        if other.value == 0:
+            raise ValueError("Cannot divide by 0")
+        try:
+            cast_to = self.is_types_the_same_type_and_return(other)
+            return Alpha(cast_to(self.value) / cast_to(other.value), True)
+        except TypeError as e:
+            raise TypeError(f"Cannot divide {other} to {self}. {e}")
+
+    def __pow__(self, other: "Alpha") -> "Alpha":
+        try:
+            cast_to = self.is_types_the_same_type_and_return(other)
+            return Alpha(cast_to(self.value) ** cast_to(other.value), True)
+        except TypeError as e:
+            raise TypeError(f"Cannot power {other} to {self}. {e}")
 
 
     def __eq__(self, other: Any) -> bool:
