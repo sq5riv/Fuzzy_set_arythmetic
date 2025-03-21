@@ -1,6 +1,6 @@
 from decimal import Decimal
 from fractions import Fraction
-from typing import Union, Any, cast
+from typing import Union, Any, cast, Self
 
 AlphaType = Union[float, Decimal, Fraction]
 Numeric = Union[int, AlphaType]
@@ -40,42 +40,42 @@ class Alpha:
             raise TypeError(f"Alphas has another types {type(self.value)} and {type(other.value)}. ")
         return rettype
 
-    def __add__(self, other: "Alpha") -> "Alpha":
+    def __add__(self, other: "Alpha") -> Self:
         try:
             cast_to = self.is_types_the_same_type_and_return(other)
-            return Alpha(cast_to(self.value) + cast_to(other.value), True)
+            return self.__class__(cast_to(self.value) + cast_to(other.value), True)
         except TypeError as e:
             raise TypeError(f"Cannot add {other} to {self}. {e}")
 
 
-    def __sub__(self, other: "Alpha") -> "Alpha":
+    def __sub__(self, other: "Alpha") -> Self:
         try:
             cast_to = self.is_types_the_same_type_and_return(other)
-            return Alpha(cast_to(self.value) - cast_to(other.value), True)
+            return self.__class__(cast_to(self.value) - cast_to(other.value), True)
         except TypeError as e:
             raise TypeError(f"Cannot subtract {other} to {self}. {e}")
 
 
-    def __mul__(self, other: "Alpha") -> "Alpha":
+    def __mul__(self, other: "Alpha") -> Self:
         try:
             cast_to = self.is_types_the_same_type_and_return(other)
-            return Alpha(cast_to(self.value) * cast_to(other.value))
+            return self.__class__(cast_to(self.value) * cast_to(other.value))
         except TypeError as e:
             raise TypeError(f"Cannot multiply {other} to {self}. {e}")
 
-    def __truediv__(self, other: "Alpha") -> "Alpha":
+    def __truediv__(self, other: "Alpha") -> Self:
         if other.value == 0:
             raise ValueError("Cannot divide by 0")
         try:
             cast_to = self.is_types_the_same_type_and_return(other)
-            return Alpha(cast_to(self.value) / cast_to(other.value), True)
+            return self.__class__(cast_to(self.value) / cast_to(other.value), True)
         except TypeError as e:
             raise TypeError(f"Cannot divide {other} to {self}. {e}")
 
-    def __pow__(self, other: "Alpha") -> "Alpha":
+    def __pow__(self, other: "Alpha") -> Self:
         try:
             cast_to = self.is_types_the_same_type_and_return(other)
-            return Alpha(cast_to(self.value) ** cast_to(other.value), True)
+            return self.__class__(cast_to(self.value) ** cast_to(other.value), True)
         except TypeError as e:
             raise TypeError(f"Cannot power {other} to {self}. {e}")
 
@@ -164,25 +164,22 @@ class Border:
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Border):
             return False
-        if self.borders == other.borders:
-            return True
-        else:
-            return False
+        return self.borders == other.borders
+
 
     @staticmethod
-    def are_left_right(left: 'Border', right: 'Border') -> bool:
+    def are_left_right(left: 'Border', right: 'Border') -> None:
         if type(left.dtrial) != type(right.dtrial):
             raise TypeError(f"Borders must have the same data type")
-        elif len(left) != len(right):
+        if len(left) != len(right):
             raise ValueError(f"Borders must have the same length")
-        elif not all(l <= r for l, r in zip(left.borders, right.borders)):
+        if not all(l <= r for l, r in zip(left.borders, right.borders)):
             raise ValueError(f"Alpha_cut length cant be negative")
-        elif not all([left >= right for left, right in zip(left.borders[1:], right.borders[:-1])]):
+        if not all(left >= right for left, right in zip(left.borders[1:], right.borders[:-1])):
             raise ValueError("Two parts of alpha-cut can't cover.")
-        elif left.covered or right.covered:
+        if left.covered or right.covered:
             raise ValueError(f"Borders must be not covered to be borders of fuzzy-set. Use uncover class-method")
-        else:
-            return True
+
 
     @classmethod
     def uncover(cls, left: 'Border', right: 'Border') -> tuple['Border', 'Border']:
@@ -214,7 +211,7 @@ class Border:
                 r_pointer += 1
         return Border(new_left), Border(new_right)
 
-    def __add__(self, other: 'Border') -> "Border":
+    def __add__(self, other: 'Border') -> Self:
         cast_to = type(self.dtrial)
         if not isinstance(other.dtrial, cast_to):
             raise TypeError(f"To add borders must have the same data type")
@@ -232,9 +229,9 @@ class Border:
                     [convert(sborder, oborder)
                     for sborder in self.borders
                     for oborder in other.borders])
-        return Border(result, True)
+        return self.__class__(result, True)
 
-    def __sub__(self, other: 'Border') -> "Border":
+    def __sub__(self, other: 'Border') -> Self:
         cast_to = type(self.dtrial)
         if not isinstance(other.dtrial, cast_to):
             raise TypeError(f"To add borders must have the same data type")
@@ -252,5 +249,5 @@ class Border:
                     [convert(sborder, oborder)
                     for sborder in self.borders
                     for oborder in other.borders])
-        return Border(result, True)
+        return self.__class__(result, True)
 

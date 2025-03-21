@@ -1,4 +1,3 @@
-import decimal
 from decimal import Decimal
 from fractions import Fraction
 
@@ -209,7 +208,7 @@ def test_border__eq__false(b1, b2):
 
 @pytest.mark.parametrize("left, right", [(Border(1.), Border(2.))])
 def test_border_are_left_and_right_proper(left, right):
-    assert Border.are_left_right(left, right) is True
+    assert Border.are_left_right(left, right) is None
 
 @pytest.mark.parametrize("left, right", [(Border(1.), Border(Decimal(2.))),
                                          (Border((1., 2.)), Border(1.)),
