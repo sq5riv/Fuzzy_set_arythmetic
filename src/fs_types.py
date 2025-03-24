@@ -1,10 +1,18 @@
+from collections import namedtuple
 from decimal import Decimal
 from fractions import Fraction
 from typing import Union, Any, cast, Self
+from enum import Enum
 
 AlphaType = Union[float, Decimal, Fraction]
 Numeric = Union[int, AlphaType]
 BorderType = list[Numeric] | tuple[Numeric, ...] | Numeric
+
+SaB = namedtuple("SaB", ["Side", "Coord"])
+
+class BorderSide(Enum):
+    LEFT = "left"
+    RIGHT= "right"
 
 class Alpha:
     """
@@ -77,7 +85,7 @@ class Alpha:
             cast_to = self.is_types_the_same_type_and_return(other)
             return self.__class__(cast_to(self.value) ** cast_to(other.value), True)
         except TypeError as e:
-            raise TypeError(f"Cannot power {other} to {self}. {e}")
+            raise TypeError(f"Cannot raise {other} to {self}. {e}")
 
 
     def __eq__(self, other: Any) -> bool:
@@ -106,9 +114,10 @@ class Alpha:
         return self.value > other.value
 
 class Border:
-    def __init__(self, border: BorderType, covered: bool = False) -> None:
+    def __init__(self, border: BorderType, covered: bool = False, side: BorderSide | None = None) -> None:
         self._set_border(border)
         self._covered = covered
+        self._side = side
         self._dtrial = self._border[0]
         self._check()
 
@@ -139,6 +148,19 @@ class Border:
 
     def __len__(self) -> int:
         return len(self._border)
+
+    @property
+    def side(self) -> BorderSide | None:
+        return self._side
+
+    @side.setter
+    def side(self, side: BorderSide | None) -> None:
+        self._side = side
+
+    def get_sab_list(self) -> list[SaB]:
+        if self.side is None:
+            raise TypeError("Cannot get sab list from None side value")
+        return [SaB(self.side, border) for border in self._border]
 
     @property
     def covered(self) -> bool:
@@ -180,36 +202,30 @@ class Border:
         if left.covered or right.covered:
             raise ValueError(f"Borders must be not covered to be borders of fuzzy-set. Use uncover class-method")
 
-
     @classmethod
     def uncover(cls, left: 'Border', right: 'Border') -> tuple['Border', 'Border']:
-        sleft = sorted(left.borders)
-        sright = sorted(right.borders)
-        l_max = len(sleft)
-        r_max = len(sright)
-        if sright[0] < sleft[0]:
-            raise ValueError(f"First right border can't be lower than first left border")
-        if l_max != r_max:
+        if len(left) != len(right):
             raise ValueError(f"Borders must have same length")
-        counter = 0
+        op_list = []
+        op_list.extend(left.get_sab_list())
+        op_list.extend(right.get_sab_list())
+        op_list.sort(key = lambda x: x.Coord)
+        numerator = 0
         new_left = []
         new_right = []
-        l_pointer = 0
-        r_pointer = 0
-        while r_pointer < r_max:
-            if l_pointer < l_max and sleft[l_pointer] < sright[r_pointer]:
-                if counter == 0: new_left.append(sleft[l_pointer])
-                l_pointer += 1
-                counter += 1
-            elif l_pointer < l_max and sleft[l_pointer] > sright[r_pointer]:
-                counter -= 1
-                if counter == 0: new_right.append(sright[r_pointer])
-                r_pointer += 1
-            else:
-                counter -= 1
-                if counter == 0: new_right.append(sright[r_pointer])
-                r_pointer += 1
-        return Border(new_left), Border(new_right)
+        for sab in op_list:
+            if sab.Side == BorderSide.LEFT:
+                numerator += 1
+                if numerator == 1:
+                    new_left.append(sab.Coord)
+            if sab.Side == BorderSide.RIGHT:
+                numerator -= 1
+                if numerator == 0:
+                    new_right.append(sab.Coord)
+            if numerator < 0:
+                raise ValueError(f"Improper borders. Some alpha-cut ends before start!")
+        return Border(new_left, side=BorderSide.LEFT), Border(new_right, side=BorderSide.RIGHT)
+
 
     def __add__(self, other: 'Border') -> Self:
         cast_to = type(self.dtrial)

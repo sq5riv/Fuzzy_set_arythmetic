@@ -1,102 +1,76 @@
 import pytest
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Iterable, Union, cast
+from typing import Iterable
 from decimal import Decimal
 from abc import ABC, abstractmethod
 
 
 from typing_extensions import override
-from src.fs_types import Alpha, AlphaType, Numeric, BorderType
+from src.fs_types import Alpha, AlphaType, Numeric, BorderType, Border, BorderSide
 
 class AlphaCut:
     """
-    Represents an α-cut of a fuzzy set.
-
+    Represents n alpha-cut of a fuzzy set.
     :param level: AlphaType-cut level.
     :param left_borders: Left borders of the alpha-cut. If more than one value is present, the fuzzy set is not convex.
     :param right_borders: Right borders of the alpha-cut. If more than one value is present, the fuzzy set is not convex.
     """
 
-    def __init__(self, level: AlphaType | Alpha , left_borders: BorderType, right_borders: BorderType) -> None:
+    def __init__(self, level: AlphaType | Alpha , left_borders: Border | BorderType, right_borders: Border | BorderType) -> None:
         self._level = level if isinstance(level, Alpha) else Alpha(level)
-        self._same_type_check(left_borders, right_borders)
-        self._left_borders = self._borders_prep(left_borders)
-        self._right_borders = self._borders_prep(right_borders)
+        self._left_borders: Border = left_borders if isinstance(left_borders, Border) else Border(left_borders, side= BorderSide.LEFT)
+        self._right_borders: Border = right_borders if isinstance(right_borders, Border) else Border(right_borders, side= BorderSide.RIGHT)
         self._borders_check()
 
-    @staticmethod
-    def _borders_prep(borders: BorderType) -> tuple[Numeric, ...]:
-        if isinstance(borders, tuple) and all([isinstance(i, Numeric) for i in borders]):
-            return borders
-        if isinstance(borders, list) and all([isinstance(i, Numeric) for i in borders]):
-            return tuple(borders)
-        if isinstance(borders, Numeric):
-            return tuple([borders])
-        raise TypeError(f"Invalid borders type: {type(borders)}")
-
-    @staticmethod
-    def _same_type_check(left_borders: BorderType, right_borders: BorderType) -> None:
-        if left_borders is None or right_borders is None:
-            raise TypeError("Both left or right borders cannot be None")
-        if isinstance(left_borders, tuple | list) and isinstance(right_borders, tuple | list):
-            if len(left_borders) == 0 == len(right_borders):
-                raise TypeError("Left or right borders can not be empty iterable")
-            expected_type = type(left_borders[0])
-            if not all([isinstance(border, expected_type) for border in left_borders]):
-                raise TypeError(f"Not all borders are {expected_type}")
-            if not all([isinstance(border, expected_type) for border in right_borders]):
-                raise TypeError(f"Not all borders are {expected_type}")
-
-        if type(left_borders) != type(right_borders):
-            raise TypeError(f"Left_borders and right_borders "
-                            f"must be the same type {type(left_borders), type(right_borders)}.")
-
     def _borders_check(self) -> None:
-        if len(self.left_borders) != len(self.right_borders):
-            raise ValueError("left and right borders must have same length.")
-        if not all(left < right for left, right in zip(self.left_borders, self.right_borders)):
-            raise ValueError("Alpha-cut have to has positive length.")
-        if len(self.left_borders) != 1:
-            if (not all([p < pp for p, pp in zip(self.left_borders, self.left_borders[1:])])
-                    or not all([p < pp for p, pp in zip(self.right_borders, self.right_borders[1:])])):
-                raise ValueError(f"Parts of alpha-cut have to be sorted.")
-            if not all([left >= right for left, right in zip(self.left_borders[1:], self.right_borders[:-1])]):
-                raise ValueError("Two parts of alpha-cut can't cover.")
-
+        """
+        Checks if given borders makes proper alpha cut. If not raise an error.
+        :return:
+        """
+        if self._left_borders.side is None:
+            self._left_borders.side = BorderSide.LEFT
+        if self._right_borders.side is None:
+            self._right_borders.side = BorderSide.RIGHT
+        Border.are_left_right(self._left_borders, self._right_borders)
 
     @property
     def level(self) -> AlphaType:
         return self._level.value
 
     @property
-    def left_borders(self) -> tuple[Numeric, ...]:
+    def left_borders(self) -> Border:
         return self._left_borders
 
     @property
-    def right_borders(self) -> tuple[Numeric, ...]:
+    def right_borders(self) -> Border:
         return self._right_borders
 
     def is_convex(self) -> bool:
         return len(self.left_borders) == 1 and len(self.right_borders) == 1
 
-    def __contains__(self, narrow: Union['AlphaCut', Numeric]) -> bool:
+    def __contains__(self, narrow: 'AlphaCut' | Numeric) -> bool:
+        """
+        Check if Alpha cut or point is in another AlphaCut.
+        :param narrow: alpha cut or point to check.
+        :return: True if Alpha cut or point is in another AlphaCut.
+        """
         if isinstance(narrow, AlphaCut):
-            if narrow.left_borders[0] < self.left_borders[0]:
+            if narrow.left_borders.borders[0] < self.left_borders.borders[0]:
                 return False
-            for left_border, right_border in zip(narrow.left_borders, narrow.right_borders):
+            for left_border, right_border in zip(narrow.left_borders.borders, narrow.right_borders.borders):
                 index_to_check = -1
-                for index, value in enumerate(self.left_borders):
+                for index, value in enumerate(self.left_borders.borders):
                     if value >= left_border:
                         index_to_check = index
                         break
-                if right_border <= self.right_borders[index_to_check]:
+                if right_border <= self.right_borders.borders[index_to_check]:
                     continue
                 else:
                     return False
             return True
         else:
-            for left_border, right_border in zip(self.left_borders, self.right_borders):
+            for left_border, right_border in zip(self.left_borders.borders, self.right_borders.borders):
                 if left_border <= narrow <= right_border:
                     return True
             return False
@@ -153,11 +127,14 @@ class FuzzySet:
             if j not in i:
                 raise ValueError(f"Fuzzy set obstructed!")
 
-    def check_membership_level(self, point: Numeric) -> AlphaType:
-        for cut in self._alpha_cuts.values():
-            if point in cut:
-                return cut.level
-        return 0
+    def check_membership_level(self, point: Numeric) -> bool:
+        """
+        Returns True if the given alpha level value is in fuzzy set.
+        :param point: Tested alpha level value
+        :return: True if the given alpha level value is in fuzzy set.
+        """
+        return point in self._alpha_cuts.keys()
+
 
     @classmethod
     def from_points(cls, alpha_levels: tuple[AlphaType, ...],
