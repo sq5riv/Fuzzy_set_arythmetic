@@ -26,6 +26,8 @@ class Alpha:
     def _type_check(self):
         if not isinstance(self.value, AlphaType):
             raise TypeError(f"Alpha value must be a float, Decimal or Fraction, not {type(self.value)}")
+        
+        # TODO [ KM - 1 ] if not self.small_check and not (0 <= self.value <= 1):
         if self.small_check == False and not 1 >= self.value >= 0:
             raise ValueError(f"Alpha-cut level must be between 0 and 1. Given value: {self.value}")
 
@@ -42,12 +44,16 @@ class Alpha:
         self._small_check = small_check
         self._type_check()
 
+    # TODO [ KM - 2 ] Lepsza nazwa check_and_get_type
     def is_types_the_same_type_and_return(self, other) -> type:
         rettype = type(other.value)
         if not isinstance(self.value, rettype):
             raise TypeError(f"Alphas has another types {type(self.value)} and {type(other.value)}. ")
         return rettype
 
+    # TODO [ KM - 3 ] Logika sprawdzania typu i przechwytywania wyjatkow w __add__, __sub__ oraz __mul__, __truediv__
+    #  __pow__, __eq__ powtarza sie. Mozna ja 'wyciagnac' do metody pomocniczej i na koniec w zaleznosci od metody 
+    #  wykonac stosowna operacje
     def __add__(self, other: "Alpha") -> Self:
         try:
             cast_to = self.is_types_the_same_type_and_return(other)
