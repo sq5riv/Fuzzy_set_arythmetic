@@ -1,4 +1,5 @@
 from src.fuzzy_set import AlphaCut, Numeric
+from src.fs_types import Border, BorderSide
 import pytest
 
 
@@ -19,16 +20,17 @@ def test_alpha_cut_incorrect_level(a: float) -> None:
     with pytest.raises(ValueError, match="Alpha-cut level must be between 0 and 1."):
          AlphaCut(a, 0.0, 1.0)
 
-@pytest.mark.parametrize("left_borders, right_borders", [(1, 2),(2, 3),
+@pytest.mark.parametrize("left_borders, right_borders", [(1, 2),
+                                                         (2, 3),
                                                          ((1, 5), (3, 7)),
                                                          ([1, 5],[3, 7])
                                                          ])
 def test_border_prep_corect(left_borders, right_borders) -> None:
     ac = AlphaCut(0.1, left_borders, right_borders)
     if isinstance(left_borders, Numeric):
-        assert ac.left_borders == tuple([left_borders])
+        assert ac.left_borders == Border(left_borders)
     if isinstance(right_borders, Numeric):
-        assert ac.right_borders == tuple([right_borders])
+        assert ac.right_borders == Border(right_borders)
 
 @pytest.mark.parametrize("left_borders, right_borders", [(1, (2, 3)),
                                                          ((1, 3), 2),
@@ -41,25 +43,32 @@ def test_border_prep_corect(left_borders, right_borders) -> None:
                                                          ([],[])
                                                          ])
 def test_border_prep_incorect(left_borders: float, right_borders: float ) -> None:
-    with pytest.raises(TypeError, match=r"(Invalid borders type:*|"
-                                        "Not all borders are*|"
-                                        "Left_borders and right_borders must be the same type*|"
-                                        "Both left or right borders cannot be None|"
-                                        "Left or right borders can not be empty iterable)"):
+    with pytest.raises((ValueError, TypeError), match=r"(Borders must have the same length|"
+                                                      r"Border must be of type Numeric,*|"
+                                                      r"All elements of border must be the same type|"
+                                                      r"border must be of type BorderType, not*|"
+                                                      r"border cannot be empty|"
+                                                      r"Left or right borders can not be empty iterable)"):
         AlphaCut(0.1, left_borders, right_borders)
 
-@pytest.mark.parametrize("left_borders, right_borders", [((1, 2),(2, 3)), ((1, 5), (3, 7))])
+@pytest.mark.parametrize("left_borders, right_borders", [((1, 2),(2, 3)),
+                                                         ((1, 5), (3, 7))])
 def test_alpha_cut_correct_borders(left_borders: float, right_borders: float ) -> None:
     assert AlphaCut(0.1, left_borders, right_borders)
 
-@pytest.mark.parametrize("left_borders, right_borders", [((1, 3), (2, 4, 5)), ((1, 2), (3, 4)), ((1, 3), (6, 10))])
+@pytest.mark.parametrize("left_borders, right_borders", [((1, 3), (2, 4, 5)),
+                                                         ((1, 2), (3, 4)),
+                                                         ((1, 3), (6, 10))])
 def test_alpha_cut_incorrect_borders(left_borders: float, right_borders: float ) -> None:
-    with pytest.raises(ValueError, match=r"(left and right borders must have same length.|Two parts of alpha-cut can't cover.)"):
+    with pytest.raises(ValueError, match=r"(Borders must have the same length|"
+                                         r"Two parts of alpha-cut can't cover.)"):
         AlphaCut(0.1, left_borders, right_borders)
 
-@pytest.mark.parametrize("left_borders, right_borders", [((2, 3), (1, 4)), ((5, 2), (6, 3))])
+@pytest.mark.parametrize("left_borders, right_borders", [((2, 3), (1, 4)),
+                                                         ((5, 2), (6, 3))])
 def test_alpha_cut_incorrect_cut_length(left_borders: float, right_borders: float ) -> None:
-    with pytest.raises(ValueError, match="(Parts of alpha-cut have to be sorted.|Alpha-cut have to has positive length.)"):
+    with pytest.raises(ValueError, match="(Alpha_cut length cant be negative|"
+                                         "Two parts of alpha-cut can't cover.)"):
         AlphaCut(0.1, left_borders, right_borders)
 
 @pytest.mark.parametrize("left_borders, right_borders", [((1,),(2,)), ((1,), (5,))])
@@ -74,7 +83,7 @@ def test_alpha_cut_not_convex(left_borders: float, right_borders: float ) -> Non
 
 def test_repr():
     ac = AlphaCut(0.1, 0, 1)
-    assert ac.__repr__() == f'Alpha_cut(0.1, (0,), (1,))'
+    assert ac.__repr__() == f'Alpha_cut(0.1, Border((0,)), Border((1,)))'
 
 @pytest.mark.parametrize("left_borders, right_borders", [((1, 6), (3, 10)),
                                                          ((1, 6), (3, 20)),
@@ -103,3 +112,7 @@ def test_alpha_cut_not_in_number(tested_number: int) -> None:
     ac0 = AlphaCut(0.1, (0, 25), (20, 50))
     assert tested_number not in ac0
 
+def test_alpha_cut_set_sides() -> None:
+    ac0 = AlphaCut(0.1, Border((0, 25)), Border((20, 50)))
+    assert ac0.left_borders.side == BorderSide.LEFT
+    assert ac0.right_borders.side == BorderSide.RIGHT

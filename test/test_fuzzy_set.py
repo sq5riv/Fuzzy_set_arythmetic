@@ -44,10 +44,10 @@ def test_remove_alpha_cut_to_fuzzy_set_incorrect(a: float | Decimal) -> None:
         fs = FuzzySet([ac0, ac1, ac3])
         fs.remove_alpha_cut(a)
 
-@pytest.mark.parametrize("a", [(0.1, .1), (2,.4) , (4, .2), (100, 0)])
-def test_fuzy_set_membership_(a: tuple[float, float]) -> None:
+@pytest.mark.parametrize("a, ex", [(0.1, True), (.2, True), (.4, True), (100, False)])
+def test_fuzy_set_membership_(a, ex) -> None:
     fs = FuzzySet([ac4, ac5, ac6])
-    assert fs.check_membership_level(a[0]) == a[1]
+    assert fs.check_membership_level(a) == ex
 
 def test_check_alpha_level_membership_fuzzy_set_incorrect() -> None:
     with pytest.raises(ValueError, match=r"Fuzzy set obstructed!" ):

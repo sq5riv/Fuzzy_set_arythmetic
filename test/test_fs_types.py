@@ -1,8 +1,7 @@
-import decimal
 from decimal import Decimal
 from fractions import Fraction
 
-from src.fs_types import Alpha, Border
+from src.fs_types import Alpha, Border, BorderSide
 import pytest
 
 @pytest.mark.parametrize("a", [0.,
@@ -159,6 +158,16 @@ def test_alpha__lt__(a,b):
 def test_alpha__gt__(a,b):
     assert a > b
 
+@pytest.mark.parametrize("a",[Alpha(0.0), Alpha(Decimal(0.5))])
+def test_alpha__truediv__improper(a: Alpha):
+    with pytest.raises((ValueError,TypeError), match=f"Cannot divide*|"
+                                                     f"Cannot divide by 0"):
+        a0 = Alpha(1.0)
+        a0 / a
+
+def test_alpha__pow__improper():
+    with pytest.raises(TypeError, match=f"Cannot raise*"):
+        Alpha(0.5) ** Alpha(Decimal(0.5))
 
 @pytest.mark.parametrize("b",[0.5,
                               5,
@@ -209,7 +218,7 @@ def test_border__eq__false(b1, b2):
 
 @pytest.mark.parametrize("left, right", [(Border(1.), Border(2.))])
 def test_border_are_left_and_right_proper(left, right):
-    assert Border.are_left_right(left, right) is True
+    assert Border.are_left_right(left, right) is None
 
 @pytest.mark.parametrize("left, right", [(Border(1.), Border(Decimal(2.))),
                                          (Border((1., 2.)), Border(1.)),
@@ -224,8 +233,14 @@ def test_border_are_left_and_right_improper(left, right):
                                                      f"Borders must have the same data type"):
         Border.are_left_right(left, right)
 
-@pytest.mark.parametrize("left, right, new_left, new_right", [(Border(1.), Border(2.),Border(1.),Border(2.)),
-                                                              (Border((2., 1.)), Border((1.5, 2.5)),Border((1., 2.)),Border((1.5, 2.5)))])
+@pytest.mark.parametrize("left, right, new_left, new_right", [(Border(1., side=BorderSide.LEFT),
+                                                               Border(2., side=BorderSide.RIGHT),
+                                                               Border(1., side=BorderSide.LEFT),
+                                                               Border(2., side=BorderSide.RIGHT)),
+                                                              (Border((2., 1.), side=BorderSide.LEFT),
+                                                               Border((1.5, 2.5), side=BorderSide.RIGHT),
+                                                               Border((1., 2.), side=BorderSide.LEFT),
+                                                               Border((1.5, 2.5), side=BorderSide.RIGHT))])
 def test_border_uncover(left, right, new_left, new_right):
     left, right = Border.uncover(left, right)
     assert left.covered is False
@@ -233,10 +248,10 @@ def test_border_uncover(left, right, new_left, new_right):
     assert left == new_left
     assert right == new_right
 
-@pytest.mark.parametrize("left, right", [(Border(1.), Border(-1.)),
-                                         (Border(2.), Border((3., 4.)))])
+@pytest.mark.parametrize("left, right", [(Border(1., side=BorderSide.LEFT), Border(-1., side=BorderSide.RIGHT)),
+                                         (Border(2., side=BorderSide.LEFT), Border((3., 4.), side=BorderSide.RIGHT))])
 def test_border_uncover_improper(left, right):
-    with pytest.raises(ValueError, match=f"First right border can't be lower than first left border|"
+    with pytest.raises(ValueError, match=f"Improper borders. Some alpha-cut ends before start!|"
                                          f"Borders must have same length"):
         Border.uncover(left, right)
 
@@ -277,3 +292,4 @@ def test_border__sub__proper(left, right, result):
 def test_border__sub__improper(left, right):
     with pytest.raises(TypeError, match=f"To add borders must have the same data type"):
         Border.__sub__(left, right)
+
