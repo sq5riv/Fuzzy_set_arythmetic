@@ -1,7 +1,7 @@
 from collections import namedtuple
 from decimal import Decimal
 from fractions import Fraction
-from typing import Union, Any, cast, Self
+from typing import Union, Any, cast, Self, Callable
 from enum import Enum
 
 AlphaType = Union[float, Decimal, Fraction]
@@ -26,7 +26,7 @@ class Alpha:
     def _type_check(self):
         if not isinstance(self.value, AlphaType):
             raise TypeError(f"Alpha value must be a float, Decimal or Fraction, not {type(self.value)}")
-        if self.small_check == False and not 1 >= self.value >= 0:
+        if not self.small_check and not (0 <= self.value <= 1):
             raise ValueError(f"Alpha-cut level must be between 0 and 1. Given value: {self.value}")
 
     @property
@@ -42,51 +42,48 @@ class Alpha:
         self._small_check = small_check
         self._type_check()
 
-    def is_types_the_same_type_and_return(self, other) -> type:
+    def check_and_get_type(self, other) -> type:
         rettype = type(other.value)
         if not isinstance(self.value, rettype):
             raise TypeError(f"Alphas has another types {type(self.value)} and {type(other.value)}. ")
         return rettype
 
-    def __add__(self, other: "Alpha") -> Self:
-        try:
-            cast_to = self.is_types_the_same_type_and_return(other)
-            return self.__class__(cast_to(self.value) + cast_to(other.value), True)
-        except TypeError as e:
-            raise TypeError(f"Cannot add {other} to {self}. {e}")
+    def check_and_do_given_operation(self, other: "Alpha", operation: Callable, error_message: str) -> Self:
+        if not isinstance(other, Alpha):
+            raise TypeError(f"You can't make operation on Alpha and {type(other)} class")
+        oper1 = self.value
+        oper2 = other.value
+        if not isinstance(oper1, type(oper2)):
+            raise TypeError(f"Alphas has another types {type(self.value)} and {type(other.value)}. {error_message}")
+        else:
+            return self.__class__(operation(oper1, oper2), True)
 
+    def __add__(self, other: "Alpha") -> Self:
+        return self.check_and_do_given_operation(other,
+                                                 lambda a, b: a + b,
+                                                 f"Cannot add {other} to {self}.")
 
     def __sub__(self, other: "Alpha") -> Self:
-        try:
-            cast_to = self.is_types_the_same_type_and_return(other)
-            return self.__class__(cast_to(self.value) - cast_to(other.value), True)
-        except TypeError as e:
-            raise TypeError(f"Cannot subtract {other} to {self}. {e}")
-
+        return self.check_and_do_given_operation(other,
+                                                 lambda a, b: a - b,
+                                                 f"Cannot subtract {other} to {self}.")
 
     def __mul__(self, other: "Alpha") -> Self:
-        try:
-            cast_to = self.is_types_the_same_type_and_return(other)
-            return self.__class__(cast_to(self.value) * cast_to(other.value))
-        except TypeError as e:
-            raise TypeError(f"Cannot multiply {other} to {self}. {e}")
+        return self.check_and_do_given_operation(other,
+                                                 lambda a, b: a * b,
+                                                 f"Cannot multiply {other} to {self}.")
 
     def __truediv__(self, other: "Alpha") -> Self:
         if other.value == 0:
             raise ValueError("Cannot divide by 0")
-        try:
-            cast_to = self.is_types_the_same_type_and_return(other)
-            return self.__class__(cast_to(self.value) / cast_to(other.value), True)
-        except TypeError as e:
-            raise TypeError(f"Cannot divide {other} to {self}. {e}")
+        return self.check_and_do_given_operation(other,
+                                                 lambda a, b: a / b,
+                                                 f"Cannot divide {other} to {self}.")
 
     def __pow__(self, other: "Alpha") -> Self:
-        try:
-            cast_to = self.is_types_the_same_type_and_return(other)
-            return self.__class__(cast_to(self.value) ** cast_to(other.value), True)
-        except TypeError as e:
-            raise TypeError(f"Cannot raise {other} to {self}. {e}")
-
+        return self.check_and_do_given_operation(other,
+                                                 lambda a, b: a ** b,
+                                                 f"Cannot raise {other} to {self}.")
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -96,7 +93,7 @@ class Alpha:
         if not isinstance(other, Alpha):
             return False
         try:
-            self.is_types_the_same_type_and_return(other)
+            self.check_and_get_type(other)
         except TypeError as e:
             raise TypeError(f"Cannot compare {other} to {self}. {e}")
         return self.value == other.value
@@ -112,6 +109,9 @@ class Alpha:
 
     def __gt__(self, other: "Alpha") -> bool:
         return self.value > other.value
+
+    def __hash__(self) -> int:
+        return hash(self.value)
 
 class Border:
     def __init__(self, border: BorderType, covered: bool = False, side: BorderSide | None = None) -> None:

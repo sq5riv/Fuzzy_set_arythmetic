@@ -36,7 +36,7 @@ def test_alpha_improper_value(a):
 def test_alpha_is_types_the_same_type_proper(a1, a2, ty):
     alpha1 = Alpha(a1)
     alpha2 = Alpha(a2)
-    assert alpha1.is_types_the_same_type_and_return(alpha2) is ty
+    assert alpha1.check_and_get_type(alpha2) is ty
 
 @pytest.mark.parametrize("a1, a2",[(0.5, Decimal(0.5)),
                                    (Decimal(0.5), Fraction(1,2)),
@@ -46,7 +46,7 @@ def test_alpha_is_types_the_same_type_improper(a1, a2):
     with pytest.raises(TypeError, match=f"Alphas has another types"):
         alpha1 = Alpha(a1)
         alpha2 = Alpha(a2)
-        alpha1.is_types_the_same_type_and_return(alpha2)
+        alpha1.check_and_get_type(alpha2)
 
 @pytest.mark.parametrize("a1, a2, res",[(0.5, 0.5, 1.0),
                                    (Decimal(0.5), Decimal(0.5), Decimal(1.0)),
@@ -163,11 +163,11 @@ def test_alpha__truediv__improper(a: Alpha):
     with pytest.raises((ValueError,TypeError), match=f"Cannot divide*|"
                                                      f"Cannot divide by 0"):
         a0 = Alpha(1.0)
-        a0 / a
+        zonk = a0 / a
 
 def test_alpha__pow__improper():
     with pytest.raises(TypeError, match=f"Cannot raise*"):
-        Alpha(0.5) ** Alpha(Decimal(0.5))
+        zonk = Alpha(0.5) ** Alpha(Decimal(0.5))
 
 @pytest.mark.parametrize("b",[0.5,
                               5,
