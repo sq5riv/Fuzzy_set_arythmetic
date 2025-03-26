@@ -1,13 +1,15 @@
+from collections import defaultdict
+
 import pytest
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Iterable
+from typing import Iterable, Callable, cast
 from decimal import Decimal
 from abc import ABC, abstractmethod
 
 
 from typing_extensions import override
-from src.fs_types import Alpha, AlphaType, Numeric, BorderType, Border, BorderSide
+from src.fs_types import Alpha, AlphaType, Numeric, BorderType, Border, BorderSide, SaB
 
 class AlphaCut:
     """
@@ -35,8 +37,8 @@ class AlphaCut:
         Border.are_left_right(self._left_borders, self._right_borders)
 
     @property
-    def level(self) -> AlphaType:
-        return self._level.value
+    def level(self) -> Alpha:
+        return self._level
 
     @property
     def left_borders(self) -> Border:
@@ -85,12 +87,38 @@ class AlphaCut:
     def __repr__(self) -> str:
         return str(self)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AlphaCut):
+            return False
+        if self.level != other.level:
+            return False
+        if self.left_borders != other.left_borders:
+            return False
+        if self.right_borders != other.right_borders:
+            return False
+        return True
+
+    @classmethod
+    def from_bordersides(cls, level: AlphaType | Alpha, said_and_border: list[SaB]) -> 'AlphaCut':
+        """
+        Build AlphaCut object from said and border coord tuple.
+        :param level: Alphacut level between 0 and 1.
+        :param said_and_border: list of points describes. Alpha-cut.
+        :return:
+        """
+        left = []
+        right = []
+        if not all(isinstance(sab, SaB) for sab in said_and_border):
+            raise ValueError(f'Border list must contain only SaB objects.')
+        [left.append(sab.Coord) if sab.Side == BorderSide.LEFT else right.append(sab.Coord) for sab in said_and_border]
+        return AlphaCut(level, left, right)
+
 class FuzzySet:
     """
     :param alpha_cuts: Iterable of alpha-cuts.
     """
     def __init__(self, alpha_cuts: Iterable[AlphaCut] | AlphaCut):
-        self._alpha_cuts: dict[float|Decimal|Fraction, AlphaCut] = dict()
+        self._alpha_cuts: dict[Alpha, AlphaCut] = dict()
         for alpha_cut in alpha_cuts if not isinstance(alpha_cuts, AlphaCut) else (alpha_cuts,):
             if alpha_cut.level not in self._alpha_cuts.keys():
                 self._alpha_cuts[alpha_cut.level] = alpha_cut
@@ -103,7 +131,7 @@ class FuzzySet:
         if isinstance(alpha_cuts, AlphaCut):
             alpha_cuts = (alpha_cuts,)
         for alpha_cut in alpha_cuts:
-            if alpha_cut.level not in self._alpha_cuts.keys():
+            if not self.check_membership_level(alpha_cut.level):
                 self._alpha_cuts[alpha_cut.level] = alpha_cut
             else:
                 raise ValueError(f"You have two Alpha-cuts with same level {alpha_cut.level}.")
@@ -111,9 +139,14 @@ class FuzzySet:
         self._check_alpha_levels_membership()
         return self
 
-    def remove_alpha_cut(self, level: AlphaType) -> 'FuzzySet':
-        if level in self._alpha_cuts.keys():
-            self._alpha_cuts.pop(level)
+    @property
+    def alpha_cuts(self) -> list[AlphaCut]:
+        return list(self._alpha_cuts.values())
+
+    def remove_alpha_cut(self, level: AlphaType | Alpha) -> 'FuzzySet':
+        lvl = level if isinstance(level, Alpha) else Alpha(level)
+        if lvl in self._alpha_cuts.keys():
+            self._alpha_cuts.pop(lvl)
             return self
         else:
             raise ValueError(f"There is no alpha-cut level {level} in fuzzy set.")
@@ -127,12 +160,21 @@ class FuzzySet:
             if j not in i:
                 raise ValueError(f"Fuzzy set obstructed!")
 
-    def check_membership_level(self, point: Numeric) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FuzzySet):
+            return False
+        if all(acs == aco for acs, aco in zip(self.alpha_cuts, other.alpha_cuts)):
+            return True
+        else:
+            return False
+
+    def check_membership_level(self, point: Alpha | AlphaType) -> bool:
         """
         Returns True if the given alpha level value is in fuzzy set.
         :param point: Tested alpha level value
         :return: True if the given alpha level value is in fuzzy set.
         """
+        point = point if isinstance(point, Alpha) else Alpha(point)
         return point in self._alpha_cuts.keys()
 
 
@@ -173,6 +215,23 @@ class FuzzySet:
 
         return cls(alpha_cuts_list)
 
+    def add_with_tnorm(self, other: 'FuzzySet', tnorm: type['Tnorm'] ) -> 'FuzzySet':
+        mid_alpha: defaultdict[Alpha, list[SaB]] = defaultdict(list)
+        for sac in self.alpha_cuts:
+            for oac in other.alpha_cuts:
+                new_alpha = tnorm(sac.level, oac.level)
+                new_alpha = new_alpha()
+                new_left = sac.left_borders + oac.left_borders
+                new_right = sac.right_borders + oac.right_borders
+                new_left.side = BorderSide.LEFT
+                new_right.side = BorderSide.RIGHT
+                mid_alpha[new_alpha].extend(new_left.get_sab_list())
+                mid_alpha[new_alpha].extend(new_right.get_sab_list())
+        alpha_list = []
+        for k, v in mid_alpha.items():
+            alpha_list.append(AlphaCut.from_bordersides(k, v))
+        return FuzzySet(alpha_cuts=alpha_list)
+
 @pytest.mark.skip(reason="Skipping tests for abstract class")
 @dataclass
 class Tnorm(ABC):
@@ -194,7 +253,7 @@ class Tnorm(ABC):
     def _types_validation(self):
         if not (isinstance(self.a, Alpha) and isinstance(self.b, Alpha)):
             raise TypeError(f"T-norm calculation requires Alpha's.")
-        self.a.is_types_the_same_type_and_return(self.b)
+        self.a.check_and_get_type(self.b)
 
     def _set_zero_one_alpha(self) -> None:
         if isinstance(self.a.value, float):

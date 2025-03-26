@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Iterable
 
-from src.fuzzy_set import AlphaCut, FuzzySet, Numeric
+from src.fuzzy_set import AlphaCut, FuzzySet, Numeric, Min
 import pytest
 
 ac0 = AlphaCut(0.01, 0.0, 1.0)
@@ -33,18 +33,17 @@ def test_add_alpha_cut_to_fuzzy_set_incorrect(a: AlphaCut | tuple[AlphaCut, ...]
         fs = FuzzySet([ac0])
         fs.add_alpha_cut(a)
 
-@pytest.mark.parametrize("a", [0.01, 0.1, 0.3])
-def test_remove_alpha_cut_from_fuzzy_set_correct(a: float) -> None:
+def test_remove_alpha_cut_from_fuzzy_set_correct() -> None:
     fs = FuzzySet([ac0, ac1, ac3])
     assert fs.remove_alpha_cut(0.01) is fs
 
-@pytest.mark.parametrize("a", [.05, 0.6, 1, Decimal(0.9)])
+@pytest.mark.parametrize("a", [.05, 0.6, 1.0, Decimal(0.9)])
 def test_remove_alpha_cut_to_fuzzy_set_incorrect(a: float | Decimal) -> None:
     with pytest.raises(ValueError, match=r"There is no alpha-cut level (\d|.)+ in fuzzy set." ):
         fs = FuzzySet([ac0, ac1, ac3])
         fs.remove_alpha_cut(a)
 
-@pytest.mark.parametrize("a, ex", [(0.1, True), (.2, True), (.4, True), (100, False)])
+@pytest.mark.parametrize("a, ex", [(0.1, True), (.2, True), (.4, True), (1.0, False)])
 def test_fuzy_set_membership_(a, ex) -> None:
     fs = FuzzySet([ac4, ac5, ac6])
     assert fs.check_membership_level(a) == ex
@@ -59,3 +58,12 @@ def test_from_points(points: Iterable[tuple[Numeric, Numeric]]) -> None:
 def test_from_wrong_points(wrong_points: Iterable[tuple[Numeric, Numeric]]) -> None:
     with pytest.raises(ValueError, match=r"Fuzzy set domain obstructed." ):
         FuzzySet.from_points(tuple([0., 0.1, 0.2, 1.]), wrong_points)
+
+@pytest.mark.parametrize("fs1, fs2, tnorm, fsex", [(FuzzySet([AlphaCut(1.0, 0, 1)]),
+                                                    FuzzySet([AlphaCut(1.0, 0, 1)]),
+                                                    Min,
+                                                    FuzzySet([AlphaCut(1.0, 0, 2)]),
+                                                     )])
+def test_fuzzy_set_add_with_tnorm(fs1, fs2, tnorm, fsex):
+    assert fs1.add_with_tnorm(fs2, tnorm) == fsex
+
