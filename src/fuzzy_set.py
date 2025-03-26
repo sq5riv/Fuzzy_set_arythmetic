@@ -1,14 +1,11 @@
 from collections import defaultdict
-
-import pytest
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Iterable, Callable, cast
+from typing import Iterable, Self
 from decimal import Decimal
 from abc import ABC, abstractmethod
-
-
 from typing_extensions import override
+
 from src.fs_types import Alpha, AlphaType, Numeric, BorderType, Border, BorderSide, SaB
 
 class AlphaCut:
@@ -51,7 +48,7 @@ class AlphaCut:
     def is_convex(self) -> bool:
         return len(self.left_borders) == 1 and len(self.right_borders) == 1
 
-    def __contains__(self, narrow: 'AlphaCut' | Numeric) -> bool:
+    def __contains__(self, narrow: Numeric | 'AlphaCut') -> bool:
         """
         Check if Alpha cut or point is in another AlphaCut.
         :param narrow: alpha cut or point to check.
@@ -77,7 +74,6 @@ class AlphaCut:
                     return True
             return False
 
-
     def is_wider(self, narrow: 'AlphaCut') -> bool:
         return narrow in self
 
@@ -97,6 +93,14 @@ class AlphaCut:
         if self.right_borders != other.right_borders:
             return False
         return True
+
+    def invert(self) -> 'AlphaCut':
+        cast_to = type(self.left_borders.dtrial)
+        new_left = self.right_borders * Border(cast_to(-1.0))
+        new_right = self.left_borders * Border(cast_to(-1.0))
+        new_right.side = BorderSide.RIGHT
+        new_left.side = BorderSide.LEFT
+        return AlphaCut(self.level, *Border.uncover(new_left, new_right))
 
     @classmethod
     def from_bordersides(cls, level: AlphaType | Alpha, said_and_border: list[SaB]) -> 'AlphaCut':
@@ -215,7 +219,7 @@ class FuzzySet:
 
         return cls(alpha_cuts_list)
 
-    def add_with_tnorm(self, other: 'FuzzySet', tnorm: type['Tnorm'] ) -> 'FuzzySet':
+    def add_with_tnorm(self, other: 'FuzzySet', tnorm: type['Tnorm'] ) -> Self:
         mid_alpha: defaultdict[Alpha, list[SaB]] = defaultdict(list)
         for sac in self.alpha_cuts:
             for oac in other.alpha_cuts:
@@ -232,7 +236,15 @@ class FuzzySet:
             alpha_list.append(AlphaCut.from_bordersides(k, v))
         return FuzzySet(alpha_cuts=alpha_list)
 
-@pytest.mark.skip(reason="Skipping tests for abstract class")
+    def invert(self) -> Self:
+        new_alpha_cuts = []
+        [new_alpha_cuts.append(v.invert()) for k, v in self._alpha_cuts.items()]
+        return FuzzySet(alpha_cuts=new_alpha_cuts)
+
+    def sub_with_tnorm(self, other: 'FuzzySet', tnorm: type['Tnorm'] ) -> Self:
+        return self.add_with_tnorm(other.invert(), tnorm)
+
+
 @dataclass
 class Tnorm(ABC):
     """

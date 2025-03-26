@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Iterable
+from typing import Iterable, cast
 
 from src.fuzzy_set import AlphaCut, FuzzySet, Numeric, Min
 import pytest
@@ -67,3 +67,18 @@ def test_from_wrong_points(wrong_points: Iterable[tuple[Numeric, Numeric]]) -> N
 def test_fuzzy_set_add_with_tnorm(fs1, fs2, tnorm, fsex):
     assert fs1.add_with_tnorm(fs2, tnorm) == fsex
 
+@pytest.mark.parametrize("fs1, fs2, tnorm, fsex", [(FuzzySet([AlphaCut(1.0, 0, 1)]),
+                                                    FuzzySet([AlphaCut(1.0, 0, 1)]),
+                                                    Min,
+                                                    FuzzySet([AlphaCut(1.0, -1, 1)]),
+                                                     )])
+def test_fuzzy_set_sub_with_tnorm(fs1, fs2, tnorm, fsex):
+    assert fs1.sub_with_tnorm(fs2, tnorm) == fsex
+
+
+@pytest.mark.parametrize("fs1, res",[(FuzzySet([AlphaCut(1.0, 0, 1)]), True),
+                                     (FuzzySet([AlphaCut(1.0, -1, 1)]), False),
+                                     (cast(FuzzySet, 1), False)],)
+def test_fuzzy_set__eq__(fs1, res):
+    fs0 = FuzzySet([AlphaCut(1.0, 0, 1)])
+    assert (fs0 == fs1) == res
