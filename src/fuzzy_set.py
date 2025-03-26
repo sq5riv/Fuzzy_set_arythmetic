@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 
 
 from typing_extensions import override
+# from typing import override  # TODO [ KM - 4 ] Zastosuj ten override i uporzadkuj prosze importy
 from src.fs_types import Alpha, AlphaType, Numeric, BorderType, Border, BorderSide, SaB
 
 class AlphaCut:
@@ -215,6 +216,7 @@ class FuzzySet:
 
         return cls(alpha_cuts_list)
 
+    # TODO [ KM - 2 ] Caly czas pojawiaja sie miejsca jak w tej metodzie gdzie mozna zamiast 'FuzzySet' napisac Self
     def add_with_tnorm(self, other: 'FuzzySet', tnorm: type['Tnorm'] ) -> 'FuzzySet':
         mid_alpha: defaultdict[Alpha, list[SaB]] = defaultdict(list)
         for sac in self.alpha_cuts:
@@ -232,6 +234,7 @@ class FuzzySet:
             alpha_list.append(AlphaCut.from_bordersides(k, v))
         return FuzzySet(alpha_cuts=alpha_list)
 
+# TODO [ KM - 1 ] Cos sie tutaj zawieruszylo z testow
 @pytest.mark.skip(reason="Skipping tests for abstract class")
 @dataclass
 class Tnorm(ABC):
@@ -411,3 +414,4 @@ class Sklar(Tnorm):
         else: #  self.parameter == float('inf'):
             return Drastic(self.a, self.b)()
 
+# TODO [ KM - 3 ] Kod sie ladnie rozrasta wiec z czasem bedzie trzeba pomyslec o podziale na paczki / wiecej modulow
