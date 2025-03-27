@@ -1,11 +1,9 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from typing import NamedTuple, Self
 
-from typing import Self
-from typing import NamedTuple
-
-from src.fs_types import BorderSide
 from src.fuzzy_set import FuzzySet
+from src.fs_types import BorderSide
 
 class Fuzzyplotdef(NamedTuple):
     fuzzy_set: FuzzySet

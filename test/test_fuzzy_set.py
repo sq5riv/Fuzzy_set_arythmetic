@@ -3,7 +3,8 @@ from decimal import Decimal
 from typing import Iterable, cast
 
 from src.fs_types import BorderSide
-from src.fuzzy_set import AlphaCut, FuzzySet, Numeric, Min, Alcs
+from src.fuzzy_set import AlphaCut, FuzzySet, Numeric, Alcs
+from src.t_norm import Min
 
 
 ac0 = AlphaCut(0.01, 0.0, 1.0)

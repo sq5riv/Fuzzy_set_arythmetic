@@ -10,15 +10,10 @@ BorderType = list[Numeric] | tuple[Numeric, ...] | Numeric
 
 SaB = namedtuple("SaB", ["Side", "Coord"])
 
-class BorderSide(Enum):
-    LEFT = "left"
-    RIGHT= "right"
-    INSIDE = "inside"
-
 class Alcs(NamedTuple):
     alpha_level: float
     coord: float
-    side: BorderSide
+    side: "BorderSide"
 
 class Alpha:
     """
@@ -120,7 +115,7 @@ class Alpha:
         return hash(self.value)
 
 class Border:
-    def __init__(self, border: BorderType, covered: bool = False, side: BorderSide | None = None) -> None:
+    def __init__(self, border: BorderType, covered: bool = False, side: "BorderSide | None" = None) -> None:
         self._set_border(border)
         self._covered = covered
         self._side = side
@@ -156,11 +151,11 @@ class Border:
         return len(self._border)
 
     @property
-    def side(self) -> BorderSide | None:
+    def side(self) -> "BorderSide | None":
         return self._side
 
     @side.setter
-    def side(self, side: BorderSide | None) -> None:
+    def side(self, side: "BorderSide | None") -> None:
         self._side = side
 
     def get_sab_list(self) -> list[SaB]:
@@ -294,3 +289,8 @@ class Border:
                     for sborder in self.borders
                     for oborder in other.borders])
         return Border(result, True)
+
+class BorderSide(Enum):
+    LEFT = "left"
+    RIGHT= "right"
+    INSIDE = "inside"

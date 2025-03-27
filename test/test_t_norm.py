@@ -3,7 +3,7 @@ from decimal import Decimal
 from fractions import Fraction
 
 from src.fs_types import Alpha
-from src.fuzzy_set import Tnorm, Min, Max, Product, Lukasiewicz, Drastic, Nilpotent, \
+from src.t_norm import Min, Max, Product, Lukasiewicz, Drastic, Nilpotent, \
     Hamacher, Sklar
 
 
