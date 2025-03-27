@@ -1,10 +1,11 @@
+import pytest
 from decimal import Decimal
 from fractions import Fraction
 
 from src.fs_types import Alpha
 from src.fuzzy_set import Tnorm, Min, Max, Product, Lukasiewicz, Drastic, Nilpotent, \
     Hamacher, Sklar
-import pytest
+
 
 @pytest.mark.parametrize("a1, a2",[(Alpha(0.5), Alpha(0.5)),])
 def test_t_norm_proper(a1, a2) -> None:

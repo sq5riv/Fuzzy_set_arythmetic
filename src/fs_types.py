@@ -1,7 +1,7 @@
 from collections import namedtuple
 from decimal import Decimal
 from fractions import Fraction
-from typing import Union, Any, cast, Self, Callable
+from typing import Union, Any, cast, Self, Callable, NamedTuple
 from enum import Enum
 
 AlphaType = Union[float, Decimal, Fraction]
@@ -13,6 +13,12 @@ SaB = namedtuple("SaB", ["Side", "Coord"])
 class BorderSide(Enum):
     LEFT = "left"
     RIGHT= "right"
+    INSIDE = "inside"
+
+class Alcs(NamedTuple):
+    alpha_level: float
+    coord: float
+    side: BorderSide
 
 class Alpha:
     """

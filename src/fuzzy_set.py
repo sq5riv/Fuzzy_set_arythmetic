@@ -6,7 +6,7 @@ from decimal import Decimal
 from abc import ABC, abstractmethod
 from typing_extensions import override
 
-from src.fs_types import Alpha, AlphaType, Numeric, BorderType, Border, BorderSide, SaB
+from src.fs_types import Alcs, Alpha, AlphaType, Border, BorderSide, BorderType, Numeric, SaB
 
 class AlphaCut:
     """
@@ -100,7 +100,7 @@ class AlphaCut:
         new_right = self.left_borders * Border(cast_to(-1.0))
         new_right.side = BorderSide.RIGHT
         new_left.side = BorderSide.LEFT
-        return AlphaCut(self.level, *Border.uncover(new_left, new_right))
+        return AlphaCut(self.level.value, *Border.uncover(new_left, new_right))
 
     @classmethod
     def from_bordersides(cls, level: AlphaType | Alpha, said_and_border: list[SaB]) -> 'AlphaCut':
@@ -116,6 +116,19 @@ class AlphaCut:
             raise ValueError(f'Border list must contain only SaB objects.')
         [left.append(sab.Coord) if sab.Side == BorderSide.LEFT else right.append(sab.Coord) for sab in said_and_border]
         return AlphaCut(level, left, right)
+
+    def get_alcs(self) -> list[Alcs]:
+        retlist = []
+        for left, right in zip(self.left_borders.borders, self.right_borders.borders):
+            retlist.append(Alcs(float(self.level.value), float(left), BorderSide.LEFT))
+            retlist.append(Alcs(float(self.level.value), float(right), BorderSide.RIGHT))
+            point = float(left)
+            eps = (float(right) - point) / 33
+            while (point := point + eps) < right:
+                retlist.append(Alcs(float(self.level.value), float(point), BorderSide.INSIDE))
+
+        return retlist
+
 
 class FuzzySet:
     """
@@ -185,7 +198,7 @@ class FuzzySet:
     @classmethod
     def from_points(cls, alpha_levels: tuple[AlphaType, ...],
                     points: Iterable[tuple[Numeric, Numeric]]
-                    ) -> 'FuzzySet':
+                    ) -> Self:
         """
 
         :param alpha_levels: tuple of given levels to generate AlphaCuts
@@ -244,6 +257,10 @@ class FuzzySet:
     def sub_with_tnorm(self, other: 'FuzzySet', tnorm: type['Tnorm'] ) -> Self:
         return self.add_with_tnorm(other.invert(), tnorm)
 
+    def get_points_to_plot(self) -> list[Alcs]:
+        retlist = []
+        [retlist.extend(a.get_alcs()) for a in self.alpha_cuts]
+        return retlist
 
 @dataclass
 class Tnorm(ABC):
@@ -320,7 +337,6 @@ class Product(Tnorm):
     def __call__(self) -> Alpha:
         return self.a * self.b
 
-
 class Lukasiewicz(Tnorm):
     """
     :param a: AlphaType level of AlphaCut
@@ -385,7 +401,6 @@ class Hamacher(Tnorm):
             return self.zero
         else:
             return (self.a * self.b) / (self.a + self.b - self.a * self.b)
-
 
 class Sklar(Tnorm):
     """

@@ -1,9 +1,10 @@
+import pytest
 from typing import cast
 from decimal import Decimal
 from fractions import Fraction
 
 from src.fs_types import Alpha, Border, BorderSide
-import pytest
+
 
 @pytest.mark.parametrize("a", [0.,
                                0.5,

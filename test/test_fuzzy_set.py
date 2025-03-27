@@ -1,8 +1,10 @@
+import pytest
 from decimal import Decimal
 from typing import Iterable, cast
 
-from src.fuzzy_set import AlphaCut, FuzzySet, Numeric, Min
-import pytest
+from src.fs_types import BorderSide
+from src.fuzzy_set import AlphaCut, FuzzySet, Numeric, Min, Alcs
+
 
 ac0 = AlphaCut(0.01, 0.0, 1.0)
 ac1 = AlphaCut(0.1, 0.0, 1.0)
@@ -82,3 +84,10 @@ def test_fuzzy_set_sub_with_tnorm(fs1, fs2, tnorm, fsex):
 def test_fuzzy_set__eq__(fs1, res):
     fs0 = FuzzySet([AlphaCut(1.0, 0, 1)])
     assert (fs0 == fs1) == res
+
+def test_fuzzy_set_get_points_to_plot():
+    fs = FuzzySet([AlphaCut(0.2,1,3)])
+    points = fs.get_points_to_plot()
+    assert points[0] == Alcs(0.2, 1.0, BorderSide.LEFT)
+    assert points[1] == Alcs(0.2, 3.0, BorderSide.RIGHT)
+    assert points[2] == Alcs(0.2, 1.0606060606060606, BorderSide.INSIDE)
