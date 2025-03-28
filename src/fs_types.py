@@ -4,6 +4,13 @@ from fractions import Fraction
 from typing import Union, Any, cast, Self, Callable, NamedTuple
 from enum import Enum
 
+# TODO [ KM - 7 ] Tutaj rowniez przy takiej ilosci kodu zastosowalbym podzial w stylu
+# types.py         # Typy pomocnicze, NamedTuple, SaB, Alcs, BorderSide, itd.
+# alpha.py         # Klasa Alpha
+# border.py        # Klasa Border
+# W tym miejscu od razu napisze, ze po zastosowaniu podzialu na moduly, trzeba bedzie przeorganizowac
+# testy, zeby tez byly w odpowiednich modulach, ale to juz kopiuj wklej istniejacych testow.
+
 AlphaType = Union[float, Decimal, Fraction]
 Numeric = Union[int, AlphaType]
 BorderType = list[Numeric] | tuple[Numeric, ...] | Numeric

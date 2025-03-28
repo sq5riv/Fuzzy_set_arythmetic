@@ -167,6 +167,13 @@ def test_alpha__truediv__improper(a: Alpha):
         a0 = Alpha(1.0)
         zonk = a0 / a
 
+
+# TODO [ KM - 4 ] Testy ok, mozna popracowac nad wyodrebnianiem obiektow do conftest
+#  ale jesli sa to obiekty, ktore powtarzaja malo razy np 2 razy to mozna tego typu
+#  porzadkowanie zostawic na koniec. Pisze uwage nad tym testem bo mozna jeszcze
+#  popracowac nad czytelniejsza nazwa testow co potem kiedy mamy raporty dla testow
+#  tez moze stanowic forme dokumentacji np. dla ponizszego testu nazwa
+#  test_alpha_and_same_type_should_succeed
 def test_alpha__pow__improper():
     with pytest.raises(TypeError, match=f"Cannot raise*"):
         zonk = Alpha(0.5) ** Alpha(Decimal(0.5))

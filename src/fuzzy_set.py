@@ -1,6 +1,5 @@
 from collections import defaultdict
 from typing import Iterable, Self
-
 from src.fs_types import Alcs, Alpha, AlphaType, Border, BorderSide, BorderType, Numeric, SaB
 from src.t_norm import Tnorm
 
@@ -124,6 +123,10 @@ class AlphaCut:
                 retlist.append(Alcs(float(self.level.value), float(point), BorderSide.INSIDE))
 
         return retlist
+
+
+# TODO [ KM - 6 ] Przy takiej ilosci kodu i rozdzielnosci odpowiedzialnosc klas AlphaCut i FuzzySet
+#  zdecydowalbym sie na rozdzielnie tych klas na dwa osobne moduly
 
 class FuzzySet:
     """
@@ -254,5 +257,6 @@ class FuzzySet:
 
     def get_points_to_plot(self) -> list[Alcs]:
         retlist = []
+        # TODO [ KM - 4 ] Tutaj poszedlbym w klasyczna petle for bez zbednego list comprehension
         [retlist.extend(a.get_alcs()) for a in self.alpha_cuts]
         return retlist

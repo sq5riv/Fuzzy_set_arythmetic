@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from fractions import Fraction
 from decimal import Decimal
 from abc import ABC, abstractmethod
-from typing_extensions import override
-
+# from typing_extensions import override
+from typing import override # TODO [ KM - 5 ]
 from src.fs_types import Alpha
 
 @dataclass

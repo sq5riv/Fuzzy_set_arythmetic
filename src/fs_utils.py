@@ -5,6 +5,7 @@ from typing import NamedTuple, Self
 from src.fuzzy_set import FuzzySet
 from src.fs_types import BorderSide
 
+# TODO [ KM - 1 ] Nazwy klas powinny byc w konwencji Pascal Case
 class Fuzzyplotdef(NamedTuple):
     fuzzy_set: FuzzySet
     label: str
@@ -18,9 +19,12 @@ class Fuzzy_plot:
         self.to_plot.append(fs)
         return self
 
-    def plot(self, file: str | None= None) -> None:
+    def plot(self, file: str | None = None) -> None:
         legend = []
         def point_tick_typer(p: BorderSide) -> str:
+
+            # TODO [ KM - 3 ] Ja bym zrobil match case bo bedzie ladniejszy i gdyby w przyszlosci
+            #  doszly kolejne opcje match case bedzie lepiej wygladal
             if p == BorderSide.LEFT:
                 return "<"
             elif p == BorderSide.RIGHT:
@@ -36,6 +40,9 @@ class Fuzzy_plot:
             legend.append(mpatches.Patch(color= fpd.color, label= fpd.label))
 
         plt.legend(handles=legend)
+
+        # TODO [ KM - 2 ] Sprawdz ten fragment bo moze byc tak ze plt.show() wyczysci wykres
+        #  po wyswietleniu i nie zapisze nic do file
         plt.show()
         if file is not None:
             plt.savefig(file)
