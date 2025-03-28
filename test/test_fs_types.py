@@ -1,8 +1,10 @@
+import pytest
+from typing import cast
 from decimal import Decimal
 from fractions import Fraction
 
 from src.fs_types import Alpha, Border, BorderSide
-import pytest
+
 
 @pytest.mark.parametrize("a", [0.,
                                0.5,
@@ -176,6 +178,12 @@ def test_alpha__pow__improper():
     with pytest.raises(TypeError, match=f"Cannot raise*"):
         zonk = Alpha(0.5) ** Alpha(Decimal(0.5))
 
+def test_check_and_do_given_operation_improper():
+    with pytest.raises(TypeError, match=f"You can't make operation on Alpha and*"):
+        a0 = Alpha(0.5)
+        a1 = cast(Alpha, 0.5)
+        a0.check_and_do_given_operation(a1, lambda x,y: x+y, 'Ala ma kota')
+
 @pytest.mark.parametrize("b",[0.5,
                               5,
                               Decimal(0.5),
@@ -297,6 +305,31 @@ def test_border__sub__proper(left, right, result):
 @pytest.mark.parametrize("left, right", [(Border(1.), Border(1)),
                                          (Border(Decimal(2)), Border(1))])
 def test_border__sub__improper(left, right):
-    with pytest.raises(TypeError, match=f"To add borders must have the same data type"):
+    with pytest.raises(TypeError, match=f"To subtract borders must have the same data type"):
         Border.__sub__(left, right)
 
+@pytest.mark.parametrize("left, right, result", [(Border(1.), Border(-1.), Border(-1.)),
+                                                 (Border(2.), Border(3.), Border(6.)),
+                                                 (Border(Decimal(2.)), Border(Decimal(3.)), Border(Decimal(6.))),
+                                                 (Border(Fraction(1,2)), Border(Fraction(1,3)), Border(Fraction(1,6))),
+                                                 (Border(2), Border(3), Border(6)),
+                                                 (Border([1,2,3,4,5]),Border([-1]), Border([-1, -2, -3, -4, -5]))])
+def test_border__mul__proper(left, right, result):
+    assert Border.__mul__(left, right) == result
+
+@pytest.mark.parametrize("left, right", [(Border(1.), Border(1)),
+                                         (Border(Decimal(2)), Border(1)),
+                                         (Border((1,2)), Border((1, 2)))
+                                         ])
+def test_border__mul__improper(left, right):
+    with pytest.raises((TypeError, ValueError),
+                       match=f"To multiplied borders must have the same data type|"
+                             f"You can't multiply by Border with more than one border"):
+        Border.__mul__(left, right)
+
+
+
+def test_border_get_sab_list_improper():
+    with pytest.raises(TypeError, match="Cannot get sab list from None side value"):
+        b0 = Border(Decimal(0))
+        zonk = b0.get_sab_list()

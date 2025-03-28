@@ -1,8 +1,9 @@
+import pytest
 from typing import cast
 
-from src.fuzzy_set import AlphaCut, Numeric
+from src.fuzzy_set import AlphaCut, Numeric, Alcs
 from src.fs_types import Border, BorderSide, SaB, Alpha
-import pytest
+
 
 
 def test_alpha_cut() -> None:
@@ -138,3 +139,10 @@ def test_alpha_cut_from_bordersides_improper() -> None:
 def test_alpha_cut__eq__false(a: AlphaCut) -> None:
     a0 = AlphaCut(0.1, 2, 3)
     assert a != a0
+
+def test_alpha_cut_get_alcs() -> None:
+    ac = AlphaCut(0.2,1,3)
+    alcs = ac.get_alcs()
+    assert alcs[0] == Alcs(0.2, 1.0, BorderSide.LEFT)
+    assert alcs[1] == Alcs(0.2, 3.0, BorderSide.RIGHT)
+    assert alcs[2] == Alcs(0.2, 1.0606060606060606, BorderSide.INSIDE)

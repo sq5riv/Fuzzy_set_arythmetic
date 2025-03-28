@@ -1,7 +1,7 @@
 from collections import namedtuple
 from decimal import Decimal
 from fractions import Fraction
-from typing import Union, Any, cast, Self, Callable
+from typing import Union, Any, cast, Self, Callable, NamedTuple
 from enum import Enum
 
 AlphaType = Union[float, Decimal, Fraction]
@@ -10,9 +10,10 @@ BorderType = list[Numeric] | tuple[Numeric, ...] | Numeric
 
 SaB = namedtuple("SaB", ["Side", "Coord"])
 
-class BorderSide(Enum):
-    LEFT = "left"
-    RIGHT= "right"
+class Alcs(NamedTuple):
+    alpha_level: float
+    coord: float
+    side: "BorderSide"
 
 class Alpha:
     """
@@ -56,7 +57,7 @@ class Alpha:
         if not isinstance(oper1, type(oper2)):
             raise TypeError(f"Alphas has another types {type(self.value)} and {type(other.value)}. {error_message}")
         else:
-            return self.__class__(operation(oper1, oper2), True)
+            return Alpha(operation(oper1, oper2), True)
 
     def __add__(self, other: "Alpha") -> Self:
         return self.check_and_do_given_operation(other,
@@ -114,7 +115,7 @@ class Alpha:
         return hash(self.value)
 
 class Border:
-    def __init__(self, border: BorderType, covered: bool = False, side: BorderSide | None = None) -> None:
+    def __init__(self, border: BorderType, covered: bool = False, side: "BorderSide | None" = None) -> None:
         self._set_border(border)
         self._covered = covered
         self._side = side
@@ -150,11 +151,11 @@ class Border:
         return len(self._border)
 
     @property
-    def side(self) -> BorderSide | None:
+    def side(self) -> "BorderSide | None":
         return self._side
 
     @side.setter
-    def side(self, side: BorderSide | None) -> None:
+    def side(self, side: "BorderSide | None") -> None:
         self._side = side
 
     def get_sab_list(self) -> list[SaB]:
@@ -245,12 +246,12 @@ class Border:
                     [convert(sborder, oborder)
                     for sborder in self.borders
                     for oborder in other.borders])
-        return self.__class__(result, True)
+        return Border(result, True)
 
     def __sub__(self, other: 'Border') -> Self:
         cast_to = type(self.dtrial)
         if not isinstance(other.dtrial, cast_to):
-            raise TypeError(f"To add borders must have the same data type")
+            raise TypeError(f"To subtract borders must have the same data type")
         def convert(value1, value2) -> Numeric:
             if cast_to is Decimal:
                 return Decimal(value1) - Decimal(value2)
@@ -261,9 +262,35 @@ class Border:
             else:
                 return int(value1) - int(value2)
 
-        result: list[Numeric] =cast(list[Numeric],
+        result: list[Numeric] = cast(list[Numeric],
                     [convert(sborder, oborder)
                     for sborder in self.borders
                     for oborder in other.borders])
-        return self.__class__(result, True)
+        return Border(result, True)
 
+    def __mul__(self, other: 'Border') -> Self:
+        cast_to = type(self.dtrial)
+        if not isinstance(other.dtrial, cast_to):
+            raise TypeError(f"To multiplied borders must have the same data type")
+        if len(other.borders) != 1 and len(self.borders) != 1:
+            raise ValueError(f"You can't multiply by Border with more than one border")
+        def convert(value1, value2) -> Numeric:
+            if cast_to is Decimal:
+                return Decimal(value1) * Decimal(value2)
+            elif cast_to is Fraction:
+                return Fraction(value1) * Fraction(value2)
+            elif cast_to is float:
+                return float(value1) * float(value2)
+            else:
+                return int(value1) * int(value2)
+
+        result: list[Numeric] = cast(list[Numeric],
+                    [convert(sborder, oborder)
+                    for sborder in self.borders
+                    for oborder in other.borders])
+        return Border(result, True)
+
+class BorderSide(Enum):
+    LEFT = "left"
+    RIGHT= "right"
+    INSIDE = "inside"
