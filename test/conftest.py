@@ -3,7 +3,7 @@ from typing import Iterable
 
 import pytest
 
-from src.fs_types import Numeric
+from src.types import Numeric
 
 @pytest.fixture()
 def points() -> Iterable[tuple[Numeric, ...]]:

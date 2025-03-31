@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from fractions import Fraction
 from decimal import Decimal
 from abc import ABC, abstractmethod
-from typing_extensions import override
+from typing import override
 
-from src.fs_types import Alpha
+from src.alpha import Alpha
+
 
 @dataclass
 class Tnorm(ABC):
@@ -43,8 +44,10 @@ class Tnorm(ABC):
     def __call__(self) -> Alpha:
         pass
 
+
 class Min(Tnorm):
     """
+    T-norm calculation for min t-norm.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
     :param parameter: Not used
@@ -53,11 +56,12 @@ class Min(Tnorm):
 
     @override
     def __call__(self) -> Alpha:
-
         return min(self.a, self.b)
+
 
 class Max(Tnorm):
     """
+    T-norm calculation for max t-norm.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
     :param parameter: Not used
@@ -66,11 +70,12 @@ class Max(Tnorm):
 
     @override
     def __call__(self) -> Alpha:
-
         return max(self.a, self.b)
+
 
 class Product(Tnorm):
     """
+    T-norm calculation for product t-norm.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
     :param parameter: Not used
@@ -81,8 +86,10 @@ class Product(Tnorm):
     def __call__(self) -> Alpha:
         return self.a * self.b
 
+
 class Lukasiewicz(Tnorm):
     """
+    T-norm calculation for lukasiewicz t-norm.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
     :param parameter: Not used
@@ -92,12 +99,14 @@ class Lukasiewicz(Tnorm):
     @override
     def __call__(self) -> Alpha:
         self._set_zero_one_alpha()
-        v2 = self.a  + self.b - self.one
+        v2 = self.a + self.b - self.one
         v2.small_check = False
         return max(self.zero, v2)
 
+
 class Drastic(Tnorm):
     """
+    T-norm calculation for drastic t-norm.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
     :param parameter: Not used
@@ -114,8 +123,10 @@ class Drastic(Tnorm):
         else:
             return self.zero
 
+
 class Nilpotent(Tnorm):
     """
+    T-norm calculation for nilpotent t-norm.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
     :param parameter: Not used
@@ -130,8 +141,10 @@ class Nilpotent(Tnorm):
         else:
             return self.zero
 
+
 class Hamacher(Tnorm):
     """
+    T-norm calculation for Hamacher's t-norm.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
     :param parameter: Not used
@@ -146,8 +159,10 @@ class Hamacher(Tnorm):
         else:
             return (self.a * self.b) / (self.a + self.b - self.a * self.b)
 
+
 class Sklar(Tnorm):
     """
+    T-norm calculation for Sklar's t-norm.
     :param a: AlphaType level of AlphaCut
     :param b: AlphaType level of AlphaCut
     :param parameter: parameter of Sklar's T-norm
@@ -166,7 +181,6 @@ class Sklar(Tnorm):
             self.par_alpha = Alpha(self.parameter, True)
         self._set_zero_one_alpha()
 
-
         if self.parameter == float('-inf'):
             return Min(self.a, self.b)()
         elif float('-inf') < self.parameter < 0:
@@ -179,6 +193,5 @@ class Sklar(Tnorm):
             mid_alpha = (self.a ** self.par_alpha + self.b ** self.par_alpha - self.one) ** (self.one / self.par_alpha)
             mid_alpha.small_check = False
             return Max(self.zero, mid_alpha)()
-        else: #  self.parameter == float('inf'):
+        else:  #  self.parameter == float('inf'):
             return Drastic(self.a, self.b)()
-
