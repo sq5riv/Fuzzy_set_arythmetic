@@ -1,10 +1,10 @@
 import pytest
 from typing import cast
 
-from src.fuzzy_set import AlphaCut, Numeric, Alcs
-from src.border import Border
-from src.types import BorderSide, SaB
-from src.alpha import Alpha
+from fuzzy_set_arythmetic.fuzzy_set import AlphaCut, Numeric, Alcs
+from fuzzy_set_arythmetic.border import Border
+from fuzzy_set_arythmetic.types import BorderSide, SaB
+from fuzzy_set_arythmetic.alpha import Alpha
 
 
 def test_alpha_cut() -> None:

@@ -1,5 +1,5 @@
-from src.plot import FuzzyPlotDef, FuzzyPlot
-from src.fuzzy_set import FuzzySet, AlphaCut
+from fuzzy_set_arythmetic.plot import FuzzyPlotDef, FuzzyPlot
+from fuzzy_set_arythmetic.fuzzy_set import FuzzySet, AlphaCut
 
 
 def test_fuzzyplotdef():

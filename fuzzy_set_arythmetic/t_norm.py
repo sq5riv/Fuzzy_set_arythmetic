@@ -4,7 +4,7 @@ from decimal import Decimal
 from abc import ABC, abstractmethod
 from typing import override
 
-from src.alpha import Alpha
+from fuzzy_set_arythmetic.alpha import Alpha
 
 
 @dataclass

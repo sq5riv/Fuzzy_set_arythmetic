@@ -1,6 +1,6 @@
 from typing import Any, Callable, Self
 
-from src.types import AlphaType
+from fuzzy_set_arythmetic.types import AlphaType
 
 
 class Alpha:

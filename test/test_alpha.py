@@ -3,7 +3,7 @@ from typing import cast
 from decimal import Decimal
 from fractions import Fraction
 
-from src.alpha import Alpha
+from fuzzy_set_arythmetic.alpha import Alpha
 
 
 @pytest.mark.parametrize("a", [0.,

@@ -1,10 +1,10 @@
 from collections import defaultdict
 from typing import Iterable, Self
 
-from src.alpha import Alpha
-from src.types import Alcs, AlphaType, BorderSide, Numeric, SaB
-from src.t_norm import Tnorm
-from src.alpha_cut import AlphaCut
+from fuzzy_set_arythmetic.alpha import Alpha
+from fuzzy_set_arythmetic.types import Alcs, AlphaType, BorderSide, Numeric, SaB
+from fuzzy_set_arythmetic.t_norm import Tnorm
+from fuzzy_set_arythmetic.alpha_cut import AlphaCut
 
 
 class FuzzySet:

@@ -2,9 +2,9 @@ import pytest
 from decimal import Decimal
 from typing import Iterable, cast
 
-from src.types import BorderSide
-from src.fuzzy_set import AlphaCut, FuzzySet, Numeric, Alcs
-from src.t_norm import Min
+from fuzzy_set_arythmetic.types import BorderSide
+from fuzzy_set_arythmetic.fuzzy_set import AlphaCut, FuzzySet, Numeric, Alcs
+from fuzzy_set_arythmetic.t_norm import Min
 
 ac0 = AlphaCut(0.01, 0.0, 1.0)
 ac1 = AlphaCut(0.1, 0.0, 1.0)

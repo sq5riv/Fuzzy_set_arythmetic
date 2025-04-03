@@ -1,6 +1,6 @@
-from src.alpha import Alpha
-from src.border import Border
-from src.types import Alcs, AlphaType, BorderSide, BorderType, Numeric, SaB
+from fuzzy_set_arythmetic.alpha import Alpha
+from fuzzy_set_arythmetic.border import Border
+from fuzzy_set_arythmetic.types import Alcs, AlphaType, BorderSide, BorderType, Numeric, SaB
 
 
 class AlphaCut:
@@ -11,7 +11,8 @@ class AlphaCut:
     :param right_borders: Right borders of the alpha-cut. If more than one value is present, the fuzzy set is not convex.
     """
 
-    def __init__(self, level: AlphaType | Alpha, left_borders: Border | BorderType,
+    def __init__(self, level: AlphaType | Alpha,
+                 left_borders: Border | BorderType,
                  right_borders: Border | BorderType) -> None:
         self._level = level if isinstance(level, Alpha) else Alpha(level)
         self._left_borders: Border = left_borders if isinstance(left_borders, Border) else Border(left_borders,
@@ -151,4 +152,5 @@ class AlphaCut:
         if not all(isinstance(sab, SaB) for sab in said_and_border):
             raise ValueError(f'Border list must contain only SaB objects.')
         [left.append(sab.coord) if sab.side == BorderSide.LEFT else right.append(sab.coord) for sab in said_and_border]
+        left, right = Border.uncover(Border(left, True, BorderSide.LEFT), Border(right, True, BorderSide.RIGHT))
         return AlphaCut(level, left, right)

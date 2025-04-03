@@ -2,8 +2,8 @@ import pytest
 from decimal import Decimal
 from fractions import Fraction
 
-from src.border import Border
-from src.types import BorderSide
+from fuzzy_set_arythmetic.border import Border
+from fuzzy_set_arythmetic.types import BorderSide
 
 
 @pytest.mark.parametrize("b", [0.5,
@@ -45,7 +45,7 @@ def test_border_covered(b, expect):
 
 
 def test_border_dtrial():
-    assert Border([1, 2, 3]).dtrial is 1
+    assert Border([1, 2, 3]).dtrial == 1
 
 
 def test_border_borders():

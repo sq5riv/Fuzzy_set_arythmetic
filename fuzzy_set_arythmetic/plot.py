@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from typing import NamedTuple, Self
 
-from src import fuzzy_set
-from src.fuzzy_set import FuzzySet
-from src.types import BorderSide
+from fuzzy_set_arythmetic import fuzzy_set
+from fuzzy_set_arythmetic.fuzzy_set import FuzzySet
+from fuzzy_set_arythmetic.types import BorderSide
 
 
 class FuzzyPlotDef(NamedTuple):
@@ -54,7 +54,7 @@ class FuzzyPlot:
                          color=fpd.color)
             legend.append(mpatches.Patch(color=fpd.color, label=fpd.label))
 
-        plt.legend(handles=legend)
+        plt.legend(handles=legend, loc='upper center', bbox_to_anchor=(0.5, -0.05))
         plt.show()
         if file is not None:
             plt.savefig(file)

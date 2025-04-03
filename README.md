@@ -18,4 +18,13 @@ pip install poetry
 poetry install
 ```
 ## Use examples
-ToDo
+To try Fuzzy-set-arythmetic you need to run
+
+```sh
+poetry install --with examples
+```
+and run
+
+```sh 
+poetry run jupyter notebook examples/fuzzy_review.ipynb 
+```

@@ -2,7 +2,7 @@ from decimal import Decimal
 from fractions import Fraction
 from typing import Any, Self, cast
 
-from src.types import BorderType, Numeric, SaB, BorderSide
+from fuzzy_set_arythmetic.types import BorderType, Numeric, SaB, BorderSide
 
 
 class Border:

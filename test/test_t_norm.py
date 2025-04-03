@@ -2,8 +2,8 @@ import pytest
 from decimal import Decimal
 from fractions import Fraction
 
-from src.alpha import Alpha
-from src.t_norm import Min, Max, Product, Lukasiewicz, Drastic, Nilpotent, \
+from fuzzy_set_arythmetic.alpha import Alpha
+from fuzzy_set_arythmetic.t_norm import Min, Max, Product, Lukasiewicz, Drastic, Nilpotent, \
     Hamacher, Sklar
 
 
