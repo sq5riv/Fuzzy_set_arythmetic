@@ -143,7 +143,7 @@ class FuzzySet:
 
     @classmethod
     def from_points(cls, alpha_levels: tuple[AlphaType, ...],
-                    points: Iterable[tuple[Numeric, Numeric]]
+                    points: Iterable[tuple[Numeric, AlphaType]]
                     ) -> Self:
         """
         Builds FuzzySet from given points.
